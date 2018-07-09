@@ -4,7 +4,7 @@ from typing import List
 import math
 
 
-def generate_rsa_keys(bits=2048):
+def generate_rsa_keys(bits=1024):
     '''
     Generate an RSA keypair with an exponent of 65537 in PEM format
     param: bits The key length in bits
