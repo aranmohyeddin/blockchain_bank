@@ -15,7 +15,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 # Your application specific imports
-from banking.models import Customer
+from banking.models import Customer, Manager, BankSettings
 
 
 class Shell_interface(cmd.Cmd):
@@ -24,10 +24,45 @@ class Shell_interface(cmd.Cmd):
     prompt = '(bch_bank)$ '
     file = None
 
+    def _get_variable_with_type(self, prompt, type):
+        while True:
+            try:
+                value = input(prompt)
+                value = type(value)
+                break
+            except ValueError:
+                print('Invalid Input')
+        return value
+
     def do_1(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
                 Create Manager "ManagerUserName" "Password"'
-        print(*arg.split())
+        args = arg.split()
+        manager_username = args[0]
+        manager_password = args[1]
+
+        manager_username = manager_username.strip('"')
+        manager_password = manager_password.strip('"')
+
+        manager = Manager(username=manager_username)
+        manager.set_password(manager_password)
+        manager.save()
+
+        transaction_count_on_block = self._get_variable_with_type('Number of Transaction In Block: ', int)
+        fee = self._get_variable_with_type('Transaction Fee: ', float)
+        reward = self._get_variable_with_type('Block Mining Reward:', float)
+        difficulty = self._get_variable_with_type('Difficulty: ', int)
+        generate_token = self._get_variable_with_type('Generate Token: ', str)
+        loan_condition = self._get_variable_with_type('Remainig bank balance more than this after Loan: ', float)
+        bank_settings = BankSettings(
+            transaction_count_on_block=transaction_count_on_block,
+            fee=fee,
+            reward=reward,
+            difficulty=difficulty,
+            generate_token=generate_token,
+            loan_condition=loan_condition
+        )
+        bank_settings.save()
 
     def do_2(self, arg):
         '    :\n\
