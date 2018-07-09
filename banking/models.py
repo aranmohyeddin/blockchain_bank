@@ -36,7 +36,7 @@ class Login(models.Model):
 class Bank(Login):
     name = models.CharField(max_length=100)
     token = models.CharField(max_length=100)
-    wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE)
+    wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE, related_name='bank_wallet')
 
     def create_wallet(self):
         self.wallet = Wallet(bank=self)
@@ -51,7 +51,7 @@ class Bank(Login):
 
 class Wallet(models.Model):
     wallet_id = models.CharField(max_length=20)
-    bank = models.ForeignKey(Bank, on_delete = models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete = models.CASCADE, related_name='from_bank')
     pub = models.CharField(max_length=1024)
     pv = models.CharField(max_length=1024)
 
