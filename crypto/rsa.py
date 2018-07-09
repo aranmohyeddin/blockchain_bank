@@ -5,7 +5,7 @@ from Crypto.Hash import SHA512, SHA384, SHA256, SHA, MD5
 from Crypto import Random
 from base64 import b64encode, b64decode
 
-hash = "SHA-256"
+hash = "SHA-512"
 
 def new_keys(keysize):
     random_generator = Random.new().read
@@ -34,7 +34,7 @@ def decrypt(ciphertext, priv_key):
     return cipher.decrypt(ciphertext)
 
 
-def sign(message, priv_key, hashAlg="SHA-256"):
+def sign(message, priv_key, hashAlg="SHA-512"):
     global hash
     hash = hashAlg
     signer = PKCS1_v1_5.new(priv_key)
