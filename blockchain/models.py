@@ -256,22 +256,24 @@ class Transaction(models.Model):
         self.id = self.calculate_hash()
 
         to = TransactionOutput(
-            recipient_public_key_str=self.recipient,
+            recipient=self.recipient,
             value=self.value,
-            parent_transaction_id=self.id,
             spent=False
         )
+        self.save()
+        to.parent_transaction = self
         to.save()
         self.output_set.add(to)
 
         leftover_value = inputs_value - self.value
         if leftover_value > 0:
             to = TransactionOutput(
-                recipient_public_key_str=self.sender,
+                recipient=self.sender,
                 value=leftover_value,
-                parent_transaction_id=self.id,
                 spent=False
             )
+            self.save()
+            to.parent_transaction = self
             to.save()
             self.output_set.add(to)
 

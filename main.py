@@ -17,7 +17,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 # Your application specific imports
-from banking.models import Customer, BankSettings, Bank, Manager
+from banking.models import Customer, BankSettings, Bank, Manager, Wallet
 from blockchain.models import BlockChain, Block, Transaction, TransactionInput, TransactionOutput, Sequence
 
 
@@ -83,6 +83,43 @@ class Shell_interface(cmd.Cmd):
                 block.delete()
             if transaction:
                 transaction.delete()
+
+    def _block_to_dict(self, block):
+        block_dict = {
+            'hash': block.hash,
+            'previous_hash': block.previous_hash,
+            'nonce': block.nonce,
+            'time_stamp': block.timestamp,
+            'transactions': []
+        }
+        transactions = Transaction.objects.filter(block=block)
+        for transaction in transactions:
+            transaction_dict = {
+                'value': float(transaction.value),
+                'id': transaction.id,
+                'sender_public_key': transaction.sender,
+                'receiver_public_key': transaction.recipient,
+                'signature': transaction.signature,
+                'input': [],
+                'output': []
+            }
+            tis = TransactionInput.objects.filter(parent_transaction__id=transaction.id)
+            for ti in tis:
+                ti_dict = {
+                    'transaction_output_id': ti.transaction_output_id,
+                }
+                transaction_dict['input'].append(ti_dict)
+            tos = TransactionOutput.objects.filter(parent_transaction__id=transaction.id)
+            for to in tos:
+                to_dict = {
+                    'id': to.id,
+                    'value': float(to.value),
+                    'recipient_public_key': to.recipient,
+                    'spent': to.spent
+                }
+                transaction_dict['output'].append(to_dict)
+            block_dict['transactions'].append(transaction_dict)
+        return block_dict
 
     def do_1(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
@@ -185,7 +222,12 @@ class Shell_interface(cmd.Cmd):
     def do_7(self, arg):
         '    Get Balance:\n\
                 7'
-        print("wallet_balance")
+        # the next two line should change to get logon person's wallet
+        public_key = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCyrHvUNwWQ9yEBJ5Cn1la4paiGpt6yip995PTUgN0zn7ELMXZF85prIk7FD3nPWAKNz1lKzPHTAxB1nKQWZ6/I0kQxwHcMdFE/XxPxHHgnsueQXX1Rj2sCKluj7jgTr6RlvCv6m8MdP7nd4MuLtB+WcI7OstFwcqVLBM6qUIzIFwIDAQAB'
+        wallet = Wallet(pub=public_key)
+
+        ballance = wallet.get_balance()
+        print(ballance)
 
 
     def do_8(self, arg):
@@ -227,6 +269,11 @@ class Shell_interface(cmd.Cmd):
     def do_12(self, arg):# access management
         '    Show BlockChain(manager only):\n\
                 12'
+        blocks = Block.objects.filter(blockchain=self.blockchain)
+        blocks_list = []
+        for block in blocks:
+            blocks_list.append(self._block_to_dict(block))
+        print(json.dumps(blocks_list, sort_keys=True, indent=4))
 
     def do_13(self, arg):# access management
         '    Show BlockChain balance(manager only):\n\

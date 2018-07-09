@@ -3,6 +3,8 @@ from django.db import models
 from crypto.utils import generate_rsa_keys
 
 from utils.models import SingletonModel
+from blockchain.models import TransactionOutput
+
 try:
     from secrets import token_hex
 except ImportError:
@@ -61,6 +63,16 @@ class Wallet(models.Model):
 
     def get_keys(self):
         return self.pub, self.pv
+
+    def get_balance(self):
+        utxos = TransactionOutput.objects.filter(recipient=self.pub, spent=False)
+
+        amount = 0
+
+        for utxo in utxos:
+            amount += utxo.value
+
+        return amount
 
 
 class Customer(Login):
