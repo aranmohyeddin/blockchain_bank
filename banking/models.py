@@ -48,6 +48,12 @@ class Customer(models.Model):
         return self
 
 
+    def authenticate(password):
+        if self.password == sha512(self.salt + password):
+            return true
+        return false
+
+
     def get_keys():
         return self.wallet.get_keys()
 

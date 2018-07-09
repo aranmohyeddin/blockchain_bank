@@ -15,7 +15,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 # Your application specific imports
-from banking.models import Customer, Manager, BankSettings
+from banking.models import Customer, BankSettings, Bank
 
 
 class Shell_interface(cmd.Cmd):
@@ -23,9 +23,10 @@ class Shell_interface(cmd.Cmd):
             Type help or ? to list commands.\n'
     prompt = '(bch_bank)$ '
     file = None
+    current_user = None;
+    flag = 0;
 
-<<<<<<< HEAD
-=======
+
     def _get_variable_with_type(self, prompt, type):
         while True:
             try:
@@ -35,7 +36,7 @@ class Shell_interface(cmd.Cmd):
             except ValueError:
                 print('Invalid Input')
         return value
->>>>>>> 94ff9d7f7143558269d6223415ccaef648449b4e
+
 
     def do_1(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
@@ -76,24 +77,44 @@ class Shell_interface(cmd.Cmd):
     def do_3(self, arg):
         '    Show your Public Key and private Key:\n\
                 3'
+        print("Public key: {}\nPrivate key: {}".format(*self.current_user.get_keys))
 
 
     def do_4(self, arg):
         '    Register a new bank:\n\
                 4 "BankUserName" "Password" "Bank Name" "Token"'
-        print("bank_wallet_ID")
+        args = arg.split()
+        if args[3] != BankSettings.objects.all()[0]:
+            print("Wrong token, please contact the Governor of the Central Bank to get the right token")
+        else:
+            b = Bank().init(*args[:3])
+            print(b.get_keys()[0])
+            b.save()
 
 
     def do_5(self, arg):
         '    Register a new Customer to a bank:\n\
                 5 "CustomerUserName" "Password" "Bank Name"'
-        Customer().init(*arg.split()).save()
-        print("user_wallet_ID")
+        c = Customer().init(*arg.split())
+        print(c.get_keys()[0])
+        c.save()
 
 
     def do_6(self, arg):
         '    Login:\n\
                 6 "UserName" "Password"'
+        uname, passwd = arg.split()
+        user = Customer.objects.get(username=uname)[0]
+        if user.authenticate(passwd):
+            current_user = user
+            print("Welcome dear {} from bank {}".format(uname, user.wallet.bank))
+        else:
+            if self.flag == 0:
+                print("Authentication failed, If you don't know the password, please don't try again!")
+                self.flag = 1
+            else:
+                print("System hacked successfully! Cops are on their way. Please run!"
+
 
 
     def do_7(self, arg):
@@ -157,11 +178,13 @@ class Shell_interface(cmd.Cmd):
     def do_16(self, arg):
         '    Logout:\n\
                 16'
-        help()
+        current_user = None
+
 
     def do_quit(self, arg):
         '    Quit the Shell:\n\
                 quit'
+        logout()
         print('Thank you for using the blockchain bank system')
         return True
 
