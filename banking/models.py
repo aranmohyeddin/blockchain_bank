@@ -2,6 +2,7 @@ from crypto.utils import sha512
 from django.db import models
 from crypto.utils import generate_rsa_keys
 
+from utils.models import SingletonModel
 try:
     from secrets import token_hex
 except ImportError:
@@ -33,9 +34,8 @@ class Wallet(models.Model):
 
 class Customer(models.Model):
     username = models.CharField(max_length=100)
-    password = models.CharField(max_length=1000)  # this is not the actual password it is sha512(salt + password)
-    salt = models.CharField(max_length=64)
-    wallet = models.OneToOneField(Wallet, on_delete=models.CASCADE, primary_key=True)
+    password = models.CharField(max_length=1000)  # this is not the actualy password it is sha512(salt + password)
+    salt = models.CharField(max_length=1000)
 
 
     def init(uname, password, bank_name):
@@ -50,4 +50,18 @@ class Customer(models.Model):
 
     def get_keys():
         return self.wallet.get_keys()
+
+
+class Manager(Customer, SingletonModel):
+    pass
+
+
+class BankSettings(SingletonModel):
+    transaction_count_on_block = models.IntegerField()
+    fee = models.DecimalField(max_digits=24, decimal_places=4)
+    reward = models.DecimalField(max_digits=24, decimal_places=4)
+    difficulty = models.IntegerField()
+    generate_token = models.CharField(max_length=100)
+    loan_condition = models.DecimalField(max_digits=24, decimal_places=4)
+
 
