@@ -26,6 +26,16 @@ def sha256(message: str):
     return hash.hexdigest()
 
 
+def sha512(message: str):
+
+    message = message.encode()
+
+    hash = hashlib.sha512()
+    hash.update(message)
+
+    return hash.hexdigest()
+
+
 def merkle_root(nodes: List[str]):
     if len(nodes) == 0:
         return ""
