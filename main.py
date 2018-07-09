@@ -15,7 +15,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 # Your application specific imports
-from banking.models import Customer, BankSettings, Bank
+from banking.models import Customer, BankSettings, Bank, Manager
 
 
 class Shell_interface(cmd.Cmd):
@@ -48,8 +48,8 @@ class Shell_interface(cmd.Cmd):
         manager_username = manager_username.strip('"')
         manager_password = manager_password.strip('"')
 
-        manager = Manager(username=manager_username)
-        manager.set_password(manager_password)
+        manager = Manager()
+        manager.init(manager_username, manager_password)
         manager.save()
 
         transaction_count_on_block = self._get_variable_with_type('Number of Transaction In Block: ', int)
@@ -84,10 +84,12 @@ class Shell_interface(cmd.Cmd):
         '    Register a new bank:\n\
                 4 "BankUserName" "Password" "Bank Name" "Token"'
         args = arg.split()
-        if args[3] != BankSettings.objects.all()[0]:
+        if args[3] != BankSettings.objects.all()[0].generate_token:
             print("Wrong token, please contact the Governor of the Central Bank to get the right token")
         else:
-            b = Bank().init(*args[:3])
+            b = Bank()
+            b.init(*args[1:3])
+            b.create_wallet()
             print(b.get_keys()[0])
             b.save()
 

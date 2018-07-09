@@ -13,25 +13,24 @@ except ImportError:
 
 
 class Login(models.Model):
+    class Meta:
+        abstract = True
+
+    password = models.CharField(max_length=1000)
     username = models.CharField(max_length=100)
-    password = models.CharField(max_length=1000)  # this is not the actualy password it is sha512(salt + password)
+    # this is not the actualy password it is sha512(salt + password)
+
     salt = models.CharField(max_length=1000)
 
-
-    def init(uname, password):
+    def init(self, uname, password):
         self.username = uname
         self.salt = token_hex(32)
         self.password = sha512(self.salt + password)
 
-
-    def authenticate(password):
+    def authenticate(self, password):
         if self.password == sha512(self.salt + password):
-            return true
-        return false
-
-
-    class Meta:
-        abstract = True
+            return True
+        return False
 
 
 class Bank(Login):
@@ -39,15 +38,14 @@ class Bank(Login):
     token = models.CharField(max_length=100)
     wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE)
 
-
-    def create_wallet():
+    def create_wallet(self):
         self.wallet = Wallet(bank=self)
         self.wallet.set_keys()
         self.wallet.save()
         return self
 
 
-    def get_keys():
+    def get_keys(self):
         return self.wallet.get_keys()
 
 
@@ -57,28 +55,24 @@ class Wallet(models.Model):
     pub = models.CharField(max_length=1024)
     pv = models.CharField(max_length=1024)
 
-
-    def set_keys():
+    def set_keys(self):
         self.pv, self.pub = generate_rsa_keys()
         self.wallet_id = self.pub[:20]
 
-
-    def get_keys():
+    def get_keys(self):
         return self.pub, self.pv
 
 
 class Customer(Login):
     wallet = models.ForeignKey(Wallet, on_delete = models.CASCADE)
 
-
-    def create_wallet(bank_name):
+    def create_wallet(self, bank_name):
         self.wallet = Wallet(bank=Bank.objects.get(name=bank_name))
         self.wallet.set_keys()
         self.wallet.save()
         return self
 
-
-    def get_keys():
+    def get_keys(self):
         return self.wallet.get_keys()
 
 
