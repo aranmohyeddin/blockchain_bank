@@ -6,6 +6,17 @@ from blockchain.genesis import get_genesis_transaction
 import psycopg2
 import cmd, sys #cmd is used for making a repl.
 
+# Django specific settings
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
+
+# Ensure settings are read
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+
+# Your application specific imports
+from banking.models import Customer
+
 
 class Shell_interface(cmd.Cmd):
     intro = 'Welcome to the international banks blockchain shell.\n\
@@ -13,12 +24,10 @@ class Shell_interface(cmd.Cmd):
     prompt = '(bch_bank)$ '
     file = None
 
-
     def do_1(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
                 Create Manager "ManagerUserName" "Password"'
         print(*arg.split())
-
 
     def do_2(self, arg):
         '    :\n\
@@ -116,17 +125,28 @@ class Shell_interface(cmd.Cmd):
 
 if __name__ == '__main__':
     try:
-        connection = psycopg2.connect("\
-                dbname='blockchain_bank' \
-                user='dns' \
-                host='localhost' \
-                password='123qwe123' \
-                ")
-        cursor = connection.cursor()
-        #cursor.execute("""CREATE TABLE banks (name char(40));""")
-        #cursor.execute("""SELECT * from banks""")
-        #rows = cursor.fetchall()
-        #print(rows)
+        pass
+        # connection = psycopg2.connect("\
+        #         dbname='blockchain_bank' \
+        #         user='dns' \
+        #         host='localhost' \
+        #         password='123qwe123' \
+        #         ")
+        # cursor = connection.cursor()
+        # cursor.execute("""CREATE TABLE banks (name char(40));""")
+        # cursor.execute("""SELECT * from banks""")
+        # rows = cursor.fetchall()
+        # print(rows)
+
+        # c = Customer(username='gholi')
+        # c.set_password('1234')
+        # c.save()
+
+        # c = Customer.objects.get(username='gholi')
+        # print(c.pk)
+        # print(c.username)
+        # print(c.password)
+        # print(c.salt)
     except Exception as e:
         print("can not connect to db\n", e)
     Shell_interface().cmdloop()
