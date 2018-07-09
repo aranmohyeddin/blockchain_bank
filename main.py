@@ -113,8 +113,7 @@ class Shell_interface(cmd.Cmd):
                 print("Authentication failed, If you don't know the password, please don't try again!")
                 self.flag = 1
             else:
-                print("System hacked successfully! Cops are on their way. Please run!"
-
+                print("System hacked successfully! Cops are on their way. Please run!")
 
 
     def do_7(self, arg):
