@@ -24,18 +24,22 @@ class Shell_interface(cmd.Cmd):
     prompt = '(bch_bank)$ '
     file = None
 
+
     def do_1(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
                 Create Manager "ManagerUserName" "Password"'
         print(*arg.split())
 
+
     def do_2(self, arg):
         '    :\n\
              '
 
+
     def do_3(self, arg):
         '    Show your Public Key and private Key:\n\
                 3'
+
 
     def do_4(self, arg):
         '    Register a new bank:\n\
@@ -46,12 +50,14 @@ class Shell_interface(cmd.Cmd):
     def do_5(self, arg):
         '    Register a new Customer to a bank:\n\
                 5 "CustomerUserName" "Password" "Bank Name"'
+        Customer().init(*arg.split()).save()
         print("user_wallet_ID")
 
 
     def do_6(self, arg):
         '    Login:\n\
                 6 "UserName" "Password"'
+
 
     def do_7(self, arg):
         '    Get Balance:\n\
@@ -137,10 +143,6 @@ if __name__ == '__main__':
         # cursor.execute("""SELECT * from banks""")
         # rows = cursor.fetchall()
         # print(rows)
-
-        # c = Customer(username='gholi')
-        # c.set_password('1234')
-        # c.save()
 
         # c = Customer.objects.get(username='gholi')
         # print(c.pk)
