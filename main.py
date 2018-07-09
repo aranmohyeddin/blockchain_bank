@@ -1,9 +1,11 @@
-from blockchain import Block, BlockChain, Wallet, Transaction
+# from blockchain import Block, BlockChain, Wallet, Transaction
+# from blockchain import TransactionOutput
+# from blockchain.genesis import get_genesis_transaction
 from typing import Dict
-from blockchain import TransactionOutput
-from blockchain.genesis import get_genesis_transaction
 
 import psycopg2
+
+import json
 import cmd, sys #cmd is used for making a repl.
 
 # Django specific settings
@@ -16,6 +18,7 @@ application = get_wsgi_application()
 
 # Your application specific imports
 from banking.models import Customer, BankSettings, Bank, Manager
+from blockchain.models import BlockChain, Block, Transaction, TransactionInput, TransactionOutput, Sequence
 
 
 class Shell_interface(cmd.Cmd):
@@ -26,6 +29,7 @@ class Shell_interface(cmd.Cmd):
     current_user = None;
     flag = 0;
 
+    blockchain = None
 
     def _get_variable_with_type(self, prompt, type):
         while True:
@@ -37,6 +41,48 @@ class Shell_interface(cmd.Cmd):
                 print('Invalid Input')
         return value
 
+    def _read_block_from_dict(self, dict):
+        block = None
+        transaction = None
+        try:
+            block = Block(
+                hash=dict['hash'],
+                previous_hash=dict['prev_block'],
+                nonce=dict['nonce'],
+                timestamp=dict['time_stamp']
+            )
+            block.blockchain = self.blockchain
+            block.save()
+            for transaction_dict in dict['transactions']:
+                transaction = Transaction(
+                    value=transaction_dict['value'],
+                    id=transaction_dict['id'],
+                    sender=transaction_dict['sender_public_key'],
+                    recipient=transaction_dict['receiver_public_key'],
+                    signature=transaction_dict['signature']
+                )
+                transaction.block = block
+                transaction.save()
+                for input_dict in transaction_dict['input']:
+                    # ti = TransactionInput()
+                    pass
+                for output_dict in transaction_dict['output']:
+                    to = TransactionOutput(
+                        id=output_dict['id'],
+                        value=output_dict['value'],
+                        recipient=output_dict['recipient_public_key'],
+                        spent=output_dict['spent']
+                    )
+                    if transaction.id != output_dict['parent_transaction_id']:
+                        print('Something seems wrong parent_id does not match')
+                    to.parent_transaction = transaction
+                    to.save()
+        except KeyError as err:
+            print('KeyError: {}'.format(err))
+            if block:
+                block.delete()
+            if transaction:
+                transaction.delete()
 
     def do_1(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
@@ -68,11 +114,29 @@ class Shell_interface(cmd.Cmd):
         )
         bank_settings.save()
 
-
     def do_2(self, arg):
-        '    :\n\
-             '
+        '''
+        Get "json_address"
+        read genesis transaction from json file
 
+        :param arg: string json_address
+        :return:
+        '''
+        json_address = arg.strip('"')
+
+        difficulty = BankSettings.objects.all()[0].difficulty
+        self.blockchain = BlockChain(difficulty=difficulty)
+        self.blockchain.save()
+
+        with open(json_address, 'r') as json_file:
+            json_data = json.load(json_file)
+            if type(json_data) == 'list':
+                for item in json_data:
+                    self._read_block_from_dict(item)
+            else:  # it was a dict
+                self._read_block_from_dict(json_data)
+        seq = Sequence(value=Transaction.objects.count())
+        seq.save()
 
     def do_3(self, arg):
         '    Show your Public Key and private Key:\n\
