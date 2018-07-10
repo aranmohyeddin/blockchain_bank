@@ -22,11 +22,15 @@ except ImportError:
 
 
 class Login(models.Model):
-    class Meta:
-        abstract = True
+    USER_TYPE_CHOICES = (
+        (1, 'customer'),
+        (2, 'bank'),
+        (3, 'manager')
+    )
 
+    user_type = models.PositiveSmallIntegerField(choices=USER_TYPE_CHOICES)
     password = models.CharField(max_length=1000)
-    username = models.CharField(max_length=100)
+    username = models.CharField(max_length=100, unique=True)
     # this is not the actualy password it is sha512(salt + password)
 
     salt = models.CharField(max_length=1000)
@@ -35,25 +39,37 @@ class Login(models.Model):
         self.username = uname
         self.salt = token_hex(32)
         self.password = sha512(self.salt + password)
-        return self
 
     def authenticate(self, password):
         if self.password == sha512(self.salt + password):
             return True
         return False
 
+    @property
+    def model(self):
+        if self.user_type == 1:
+            return Customer
+        if self.user_type == 2:
+            return Bank
+        return Manager
 
-class Bank(Login):
-    name = models.CharField(max_length=100)
-    token = models.CharField(max_length=100)
-    wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE, related_name='bank_wallet')
+
+class Bank(models.Model):
+    login = models.OneToOneField(Login, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, unique=True)
+    wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE, related_name='bank_wallet', null=True)
+
+    def init(self, uname, password):
+        login = Login(user_type=2)
+        login.init(uname, password)
+        login.save()
+        self.login = login
 
     def create_wallet(self):
-        self.wallet = Wallet()
-        self.wallet.set_keys()
-        self.wallet.save()
-        return self
-
+        wallet = Wallet()
+        wallet.set_keys()
+        wallet.save()
+        self.wallet = wallet
 
     def get_keys(self):
         return self.wallet.get_keys()
@@ -65,14 +81,12 @@ class Wallet(models.Model):
     pub = models.CharField(max_length=1024)
     pv = models.CharField(max_length=1024)
 
-
     def set_keys(self):
+        header_len = 27
         self.pub, self.pv = new_keys(1024)
         self.pv = self.pv.export_key().decode()
         self.pub = self.pub.export_key().decode()
-        print(self.pub)
-        print(self.pub[:20])
-        self.wallet_id = self.pub[:20]
+        self.wallet_id = self.pub[header_len:header_len + 20]
 
     def get_keys(self):
         return self.pub, self.pv
@@ -93,8 +107,15 @@ class Wallet(models.Model):
         return amount
 
 
-class Customer(Login):
+class Customer(models.Model):
+    login = models.OneToOneField(Login, on_delete=models.CASCADE)
     wallet = models.ForeignKey(Wallet, on_delete = models.CASCADE)
+
+    def init(self, uname, password):
+        login = Login(user_type=1)
+        login.init(uname, password)
+        login.save()
+        self.login = login
 
     def create_wallet(self, bank_name):
         self.wallet = Wallet(bank=Bank.objects.get(name=bank_name))
@@ -106,8 +127,15 @@ class Customer(Login):
         return self.wallet.get_keys()
 
 
-class Manager(Login, SingletonModel):
-    pass
+class Manager(SingletonModel):
+    login = models.OneToOneField(Login, on_delete=models.CASCADE)
+
+    def init(self, uname, password):
+        login = Login(user_type=3)
+        login.init(uname, password)
+        login.save()
+        self.login = login
+
 
 
 class BankSettings(SingletonModel):

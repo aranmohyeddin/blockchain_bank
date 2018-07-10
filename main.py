@@ -17,7 +17,7 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 
 # Your application specific imports
-from banking.models import Customer, BankSettings, Bank, Manager, Wallet
+from banking.models import Customer, BankSettings, Bank, Manager, Wallet, Login
 from blockchain.models import BlockChain, Block, Transaction, TransactionInput, TransactionOutput, Sequence
 
 
@@ -26,8 +26,8 @@ class Shell_interface(cmd.Cmd):
             Type help or ? to list commands.\n'
     prompt = '(bch_bank)$ '
     file = None
-    current_user = None;
-    flag = 0;
+    current_user = None
+    flag = 0
 
     blockchain = None
 
@@ -188,13 +188,21 @@ class Shell_interface(cmd.Cmd):
         if args[3] != BankSettings.objects.all()[0].generate_token:
             print("Wrong token, please contact the Governor of the Central Bank to get the right token")
         else:
-            b = Bank().init(*args[1:3])
-            b.create_wallet().save()
-            b.wallet.set_bank(b)
-            print(b.get_keys()[0])
+            if Login.objects.filter(username=args[0]):
+                print('User with username {} exists'.format(args[0]))
+                return
+            if Bank.objects.filter(name=args[2]).count() > 0:
+                print('Bank with name {} exists'.format(args[2]))
+                return
+            bank = Bank()
+            bank.name = args[2]
+            bank.init(*args[:2])
+            bank.save()
+            bank.create_wallet()
+            bank.save()
 
 
-    def do_register_Customer(self, arg):
+    def do_register_customer(self, arg):
         '    Register a new Customer to a bank:\n\
                 register_customer "CustomerUserName" "Password" "Bank Name"'
         args = arg.split()
@@ -207,16 +215,10 @@ class Shell_interface(cmd.Cmd):
         '    Login:\n\
                 login "UserName" "Password"'
         uname, passwd = arg.split()
-        user = Login.objects.get(username=uname)[0].get_subclass()
+        user = Login.objects.get(username=uname)
         if user.authenticate(passwd):
-            current_user = user
-            clazz = user.__class__.__name__
-            if clazz == 'Customer':
-                print("Welcome dear {} from bank {}".format(uname, user.wallet.bank))
-            elif clazz == 'Bank':
-                print("Welcome dear manager of bank " + user.name)
-            elif clazz == 'Manager':
-                print("Welcome dear governor of the central bank! How shall we serve you?")
+            print('you logged in as {}'.format(user.get_user_type_display()))
+            self.current_user = user.model.objects.get(login=user)
         else:
             if self.flag == 0:
                 print("Authentication failed, If you don't know the password, please don't try again!")
@@ -229,9 +231,16 @@ class Shell_interface(cmd.Cmd):
     def do_get_balance(self, arg):
         '    Get Balance:\n\
                 get_balance'
+        if not self.current_user:
+            print('you must login first')
+            return
+        if self.current_user.login.user_type == 3:
+            print('Manager has no ballance')
+            return
         # the next two line should change to get logon person's wallet
-        public_key = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCyrHvUNwWQ9yEBJ5Cn1la4paiGpt6yip995PTUgN0zn7ELMXZF85prIk7FD3nPWAKNz1lKzPHTAxB1nKQWZ6/I0kQxwHcMdFE/XxPxHHgnsueQXX1Rj2sCKluj7jgTr6RlvCv6m8MdP7nd4MuLtB+WcI7OstFwcqVLBM6qUIzIFwIDAQAB'
-        wallet = Wallet(pub=public_key)
+        wallet = self.current_user.wallet
+        print(self.current_user)
+        print(wallet)
 
         ballance = wallet.get_balance()
         print(ballance)
