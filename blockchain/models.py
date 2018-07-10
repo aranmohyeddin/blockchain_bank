@@ -285,6 +285,7 @@ class Transaction(models.Model):
         for inp in self.input_set.all():
             if inp.utxo:
                 inp.utxo.spent = True
+                inp.utxo.save()
 
         return True
 
