@@ -189,9 +189,9 @@ class Shell_interface(cmd.Cmd):
             print("Wrong token, please contact the Governor of the Central Bank to get the right token")
         else:
             b = Bank().init(*args[1:3])
-            b.create_wallet()
+            b.create_wallet().save()
+            b.wallet.set_bank(b)
             print(b.get_keys()[0])
-            b.save()
 
 
     def do_register_Customer(self, arg):

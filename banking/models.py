@@ -1,6 +1,8 @@
 from django.db import models
 from typing import Dict
 
+from crypto.rsa import new_keys
+from crypto.utils import sha512
 from utils.models import SingletonModel
 
 from blockchain import TransactionOutput, Transaction, TransactionInput
@@ -47,7 +49,7 @@ class Bank(Login):
     wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE, related_name='bank_wallet')
 
     def create_wallet(self):
-        self.wallet = Wallet(bank=self)
+        self.wallet = Wallet()
         self.wallet.set_keys()
         self.wallet.save()
         return self
@@ -59,17 +61,26 @@ class Bank(Login):
 
 class Wallet(models.Model):
     wallet_id = models.CharField(max_length=20)
-    bank = models.ForeignKey(Bank, on_delete = models.CASCADE, related_name='from_bank')
+    bank = models.ForeignKey(Bank, on_delete = models.CASCADE, related_name='from_bank', null=True)
     pub = models.CharField(max_length=1024)
     pv = models.CharField(max_length=1024)
 
 
     def set_keys(self):
-        self.pv, self.pub = generate_rsa_keys()
+        self.pub, self.pv = new_keys(1024)
+        self.pv = self.pv.export_key().decode()
+        self.pub = self.pub.export_key().decode()
+        print(self.pub)
+        print(self.pub[:20])
         self.wallet_id = self.pub[:20]
 
     def get_keys(self):
         return self.pub, self.pv
+
+
+    def set_bank(self, bank):
+        self.bank = bank
+
 
     def get_balance(self):
         utxos = TransactionOutput.objects.filter(recipient=self.pub, spent=False)
