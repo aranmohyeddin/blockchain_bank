@@ -121,9 +121,9 @@ class Shell_interface(cmd.Cmd):
             block_dict['transactions'].append(transaction_dict)
         return block_dict
 
-    def do_1(self, arg):
+    def do_create_manager(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
-                Create Manager "ManagerUserName" "Password"'
+                create Manager "ManagerUserName" "Password"'
         args = arg.split()
         manager_username = args[0]
         manager_password = args[1]
@@ -151,9 +151,9 @@ class Shell_interface(cmd.Cmd):
         )
         bank_settings.save()
 
-    def do_2(self, arg):
+    def do_get_json(self, arg):
         '''
-        Get "json_address"
+        get "json_address"
         read genesis transaction from json file
 
         :param arg: string json_address
@@ -175,39 +175,39 @@ class Shell_interface(cmd.Cmd):
         seq = Sequence(value=Transaction.objects.count())
         seq.save()
 
-    def do_3(self, arg):
+    def do_show_keys(self, arg):
         '    Show your Public Key and private Key:\n\
-                3'
+                show_keys'
         print("Public key: {}\nPrivate key: {}".format(*self.current_user.get_keys))
 
 
-    def do_4(self, arg):
+    def do_register_bank(self, arg):
         '    Register a new bank:\n\
-                4 "BankUserName" "Password" "Bank Name" "Token"'
+                register_bank "BankUserName" "Password" "Bank Name" "Token"'
         args = arg.split()
         if args[3] != BankSettings.objects.all()[0].generate_token:
             print("Wrong token, please contact the Governor of the Central Bank to get the right token")
         else:
-            b = Bank()
-            b.init(*args[1:3])
+            b = Bank().init(*args[1:3])
             b.create_wallet()
             print(b.get_keys()[0])
             b.save()
 
 
-    def do_5(self, arg):
+    def do_register_Customer(self, arg):
         '    Register a new Customer to a bank:\n\
-                5 "CustomerUserName" "Password" "Bank Name"'
-        c = Customer().init(*arg.split())
+                register_customer "CustomerUserName" "Password" "Bank Name"'
+        args = arg.split()
+        c = Customer().init(*args[:2]).create_wallet(args[2])
         print(c.get_keys()[0])
         c.save()
 
 
-    def do_6(self, arg):
+    def do_login(self, arg):
         '    Login:\n\
-                6 "UserName" "Password"'
+                login "UserName" "Password"'
         uname, passwd = arg.split()
-        user = Customer.objects.get(username=uname)[0]
+        user = Login.objects.get(username=uname)[0].get_subclass()
         if user.authenticate(passwd):
             current_user = user
             print("Welcome dear {} from bank {}".format(uname, user.wallet.bank))
@@ -219,9 +219,9 @@ class Shell_interface(cmd.Cmd):
                 print("System hacked successfully! Cops are on their way. Please run!")
 
 
-    def do_7(self, arg):
+    def do_get_balance(self, arg):
         '    Get Balance:\n\
-                7'
+                get_balance'
         # the next two line should change to get logon person's wallet
         public_key = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCyrHvUNwWQ9yEBJ5Cn1la4paiGpt6yip995PTUgN0zn7ELMXZF85prIk7FD3nPWAKNz1lKzPHTAxB1nKQWZ6/I0kQxwHcMdFE/XxPxHHgnsueQXX1Rj2sCKluj7jgTr6RlvCv6m8MdP7nd4MuLtB+WcI7OstFwcqVLBM6qUIzIFwIDAQAB'
         wallet = Wallet(pub=public_key)
@@ -230,26 +230,26 @@ class Shell_interface(cmd.Cmd):
         print(ballance)
 
 
-    def do_8(self, arg):
+    def do_login_based_transfer(self, arg):
         '    Transfer some money to a wallet:\n\
-                8 x$ to "wallet_ID"'
+                login_based_transfer x$ to "wallet_ID"'
         print("are you sure you want to transfer x to?")
         print("you don't have enough balance")
 
 
-    def do_9(self, arg):
+    def do_key_based_transfer(self, arg):
         '    Send transaction:\n\
-                9 x$ "PublicKey" "PrivateKey" to "publickey"'
+                key_based_transfer x$ "PublicKey" "PrivateKey" to "publickey"'
 
 
-    def do_10(self, arg):
+    def do_request_loan(self, arg):
         '    Request for loan from bank:\n\
-                10 x$ from "Bank Name"'
+                request_loan x$ from "Bank Name"'
 
 
-    def do_11(self, arg):
+    def do_show_transactions_history(self, arg):
         '    Show transaction history(both incoming and outgoing):\n\
-                11'
+                show_transactions_history'
         history = []
         for trans in history:
             print("\
@@ -266,30 +266,30 @@ class Shell_interface(cmd.Cmd):
             trans.time_taken \
             ))
 
-    def do_12(self, arg):# access management
+    def do_show_blockchain(self, arg):# access management
         '    Show BlockChain(manager only):\n\
-                12'
+                show_blockchain'
         blocks = Block.objects.filter(blockchain=self.blockchain)
         blocks_list = []
         for block in blocks:
             blocks_list.append(self._block_to_dict(block))
         print(json.dumps(blocks_list, sort_keys=True, indent=4))
 
-    def do_13(self, arg):# access management
+    def do_show_blockchain_balence(self, arg):# access management
         '    Show BlockChain balance(manager only):\n\
-                13'
+                show_blockchain_balence'
 
-    def do_14(self, arg):# access management
+    def do_show_invalid_transactions(self, arg):# access management
         '    Show Invalid transactons(manager can view all, each bank can view the ones within their own network):\n\
-                14'
+                show_invalid_transactions'
 
-    def do_15(self, arg):# access management
+    def do_show_customers(self, arg):# access management
         '    Show Customers(manager can view all, each bank can view the ones within their own network):\n\
-                15'
+                show_customers'
 
-    def do_16(self, arg):
+    def do_logout(self, arg):
         '    Logout:\n\
-                16'
+                logout'
         current_user = None
 
 
@@ -299,6 +299,11 @@ class Shell_interface(cmd.Cmd):
         logout()
         print('Thank you for using the blockchain bank system')
         return True
+
+    def do_clear(self, arg):
+        '   Clear console:\n\
+                clear'
+        os.system('clear')
 
 
 if __name__ == '__main__':

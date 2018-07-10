@@ -28,6 +28,7 @@ class Login(models.Model):
         self.username = uname
         self.salt = token_hex(32)
         self.password = sha512(self.salt + password)
+        return self
 
     def authenticate(self, password):
         if self.password == sha512(self.salt + password):
