@@ -63,7 +63,6 @@ class Wallet(models.Model):
     pub = models.CharField(max_length=1024)
     pv = models.CharField(max_length=1024)
 
-    self.utxos = {}
 
     def set_keys(self):
         self.pv, self.pub = generate_rsa_keys()
