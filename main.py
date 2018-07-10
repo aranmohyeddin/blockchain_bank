@@ -210,13 +210,20 @@ class Shell_interface(cmd.Cmd):
         user = Login.objects.get(username=uname)[0].get_subclass()
         if user.authenticate(passwd):
             current_user = user
-            print("Welcome dear {} from bank {}".format(uname, user.wallet.bank))
+            clazz = user.__class__.__name__
+            if clazz == 'Customer':
+                print("Welcome dear {} from bank {}".format(uname, user.wallet.bank))
+            elif clazz == 'Bank':
+                print("Welcome dear manager of bank " + user.name)
+            elif clazz == 'Manager':
+                print("Welcome dear governor of the central bank! How shall we serve you?")
         else:
             if self.flag == 0:
                 print("Authentication failed, If you don't know the password, please don't try again!")
                 self.flag = 1
             else:
                 print("System hacked successfully! Cops are on their way. Please run!")
+                self.flag = 0
 
 
     def do_get_balance(self, arg):
@@ -240,6 +247,8 @@ class Shell_interface(cmd.Cmd):
     def do_key_based_transfer(self, arg):
         '    Send transaction:\n\
                 key_based_transfer x$ "PublicKey" "PrivateKey" to "publickey"'
+        args = arg.split()
+        w = Wallet.objects.get(pub = args[0])
 
 
     def do_request_loan(self, arg):

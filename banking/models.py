@@ -1,9 +1,14 @@
-from crypto.utils import sha512
 from django.db import models
-from crypto.utils import generate_rsa_keys
+from typing import Dict
 
 from utils.models import SingletonModel
+
+from blockchain import TransactionOutput, Transaction, TransactionInput
 from blockchain.models import TransactionOutput
+
+from crypto.rsa import new_keys
+from crypto.utils import sha512
+from Crypto.PublicKey.RSA import RsaKey
 
 try:
     from secrets import token_hex
@@ -57,6 +62,8 @@ class Wallet(models.Model):
     bank = models.ForeignKey(Bank, on_delete = models.CASCADE, related_name='from_bank')
     pub = models.CharField(max_length=1024)
     pv = models.CharField(max_length=1024)
+
+    self.utxos = {}
 
     def set_keys(self):
         self.pv, self.pub = generate_rsa_keys()
