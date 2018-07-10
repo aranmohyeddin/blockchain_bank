@@ -7,6 +7,7 @@ import psycopg2
 
 import json
 import cmd, sys #cmd is used for making a repl.
+from django.core.exceptions import ObjectDoesNotExist
 
 # Django specific settings
 import os
@@ -178,7 +179,12 @@ class Shell_interface(cmd.Cmd):
     def do_show_keys(self, arg):
         '    Show your Public Key and private Key:\n\
                 show_keys'
-        print("Public key: {}\nPrivate key: {}".format(*self.current_user.get_keys))
+        if not self.current_user:
+            print('Show what keys!!!?\nYou have to login fist!')
+        elif self.current_user.__class__.__name__ == 'Manager':
+            print('Sorry dear Governor of the Central Bank, you can not have a wallet due to the regulations you have created yourself!')
+        else:
+            print("{}\n{}".format(*self.current_user.get_keys()))
 
 
     def do_register_bank(self, arg):
@@ -195,37 +201,49 @@ class Shell_interface(cmd.Cmd):
                 print('Bank with name {} exists'.format(args[2]))
                 return
             bank = Bank()
-            bank.name = args[2]
-            bank.init(*args[:2])
-            bank.save()
-            bank.create_wallet()
-            bank.save()
+            bank.init(*args[:3]).save()
+            bank.create_wallet().save()
+            bank.wallet.set_bank(bank)
+            bank.wallet.save()
+            print("{}\n{}".format(*bank.get_keys()))
 
 
     def do_register_customer(self, arg):
         '    Register a new Customer to a bank:\n\
                 register_customer "CustomerUserName" "Password" "Bank Name"'
         args = arg.split()
-        c = Customer().init(*args[:2]).create_wallet(args[2])
-        print(c.get_keys()[0])
+        if Login.objects.filter(username=args[0]):
+            print('User with username {} exists'.format(args[0]))
+            return
+        if not Bank.objects.filter(name=args[2]):
+            print('The bank {} is not registered in the system.'.format(args[2]))
+            return
+        c = Customer().init(*args)
         c.save()
+        print("Public key: {}\nPrivate key: {}".format(*c.get_keys()))
 
 
     def do_login(self, arg):
         '    Login:\n\
                 login "UserName" "Password"'
-        uname, passwd = arg.split()
-        user = Login.objects.get(username=uname)
-        if user.authenticate(passwd):
-            print('you logged in as {}'.format(user.get_user_type_display()))
-            self.current_user = user.model.objects.get(login=user)
+        if self.current_user is None:
+            uname, passwd = arg.split()
+            try:
+                user = Login.objects.get(username=uname)
+                if user.authenticate(passwd):
+                    print('you logged in as {}'.format(user.get_user_type_display()))
+                    self.current_user = user.model.objects.get(login=user)
+                else:
+                    raise ValueError('password ncorrect')
+            except (ObjectDoesNotExist, ValueError) as e:
+                if self.flag == 0:
+                    print("Authentication failed, If you don't know the password, please don't try again!")
+                    self.flag = 1
+                else:
+                    print("System hacked successfully! Cops are on their way. Please run!")
+                    self.flag = 0
         else:
-            if self.flag == 0:
-                print("Authentication failed, If you don't know the password, please don't try again!")
-                self.flag = 1
-            else:
-                print("System hacked successfully! Cops are on their way. Please run!")
-                self.flag = 0
+            print("Please logout first!")
 
 
     def do_get_balance(self, arg):
@@ -235,21 +253,16 @@ class Shell_interface(cmd.Cmd):
             print('you must login first')
             return
         if self.current_user.login.user_type == 3:
-            print('Manager has no ballance')
+            print('Manager has no wallet, and no wallet means no balance')
             return
         # the next two line should change to get logon person's wallet
-        wallet = self.current_user.wallet
-        print(self.current_user)
-        print(wallet)
-
-        ballance = wallet.get_balance()
-        print(ballance)
+        balance = self.current_user.get_balance()
+        print("You currently have {}$ in your wallet".format(balance))
 
 
     def do_login_based_transfer(self, arg):
         '    Transfer some money to a wallet:\n\
                 login_based_transfer x$ to "wallet_ID"'
-        print("are you sure you want to transfer x to?")
         print("you don't have enough balance")
 
 
@@ -262,7 +275,19 @@ class Shell_interface(cmd.Cmd):
 
     def do_request_loan(self, arg):
         '    Request for loan from bank:\n\
-                request_loan x$ from "Bank Name"'
+                request_loan x$'
+        if not self.current_user:
+            print('you must login first')
+            return
+        if self.current_user.login.user_type == 3:
+            print('Manager has no wallet, and no wallet means no loan')
+            return
+        balance = self.current_user.wallet.get_balance()
+        bank_balance = self.current_user.get_bank().get_balance()
+        margin = BankSettings.objects.all()[0].loan_condition
+        if balance < bank_balance + margin:
+            # check if current_user has no failed transactions and send transaction
+            pass
 
 
     def do_show_transactions_history(self, arg):
@@ -293,9 +318,9 @@ class Shell_interface(cmd.Cmd):
             blocks_list.append(self._block_to_dict(block))
         print(json.dumps(blocks_list, sort_keys=True, indent=4))
 
-    def do_show_blockchain_balence(self, arg):# access management
+    def do_show_blockchain_balance(self, arg):# access management
         '    Show BlockChain balance(manager only):\n\
-                show_blockchain_balence'
+                show_blockchain_balance'
 
     def do_show_invalid_transactions(self, arg):# access management
         '    Show Invalid transactons(manager can view all, each bank can view the ones within their own network):\n\
@@ -308,13 +333,12 @@ class Shell_interface(cmd.Cmd):
     def do_logout(self, arg):
         '    Logout:\n\
                 logout'
-        current_user = None
+        self.current_user = None
 
 
     def do_quit(self, arg):
         '    Quit the Shell:\n\
                 quit'
-        logout()
         print('Thank you for using the blockchain bank system')
         return True
 

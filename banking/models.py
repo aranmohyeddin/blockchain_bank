@@ -39,6 +39,7 @@ class Login(models.Model):
         self.username = uname
         self.salt = token_hex(32)
         self.password = sha512(self.salt + password)
+        return self
 
     def authenticate(self, password):
         if self.password == sha512(self.salt + password):
@@ -59,20 +60,26 @@ class Bank(models.Model):
     name = models.CharField(max_length=100, unique=True)
     wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE, related_name='bank_wallet', null=True)
 
-    def init(self, uname, password):
-        login = Login(user_type=2)
-        login.init(uname, password)
+    def init(self, uname, password, name):
+        self.name = name
+        login = Login(user_type=2).init(uname, password)
         login.save()
         self.login = login
+        return self
 
     def create_wallet(self):
         wallet = Wallet()
         wallet.set_keys()
         wallet.save()
         self.wallet = wallet
+        return self
 
     def get_keys(self):
         return self.wallet.get_keys()
+
+
+    def get_balance(self):
+        return self.wallet.get_balanc()
 
 
 class Wallet(models.Model):
@@ -87,6 +94,7 @@ class Wallet(models.Model):
         self.pv = self.pv.export_key().decode()
         self.pub = self.pub.export_key().decode()
         self.wallet_id = self.pub[header_len:header_len + 20]
+        return self
 
     def get_keys(self):
         return self.pub, self.pv
@@ -111,20 +119,26 @@ class Customer(models.Model):
     login = models.OneToOneField(Login, on_delete=models.CASCADE)
     wallet = models.ForeignKey(Wallet, on_delete = models.CASCADE)
 
-    def init(self, uname, password):
-        login = Login(user_type=1)
-        login.init(uname, password)
+    def init(self, uname, password, bank_name):
+        login = Login(user_type=1).init(uname, password)
         login.save()
         self.login = login
-
-    def create_wallet(self, bank_name):
-        self.wallet = Wallet(bank=Bank.objects.get(name=bank_name))
-        self.wallet.set_keys()
-        self.wallet.save()
+        wallet = Wallet(bank=Bank.objects.get(name=bank_name)).set_keys()
+        wallet.save()
+        self.wallet = wallet
         return self
+
 
     def get_keys(self):
         return self.wallet.get_keys()
+
+
+    def get_balance(self):
+        return self.wallet.get_balanc()
+
+
+    def get_bank():
+        return self.wallet.bank
 
 
 class Manager(SingletonModel):
