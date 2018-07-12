@@ -13,6 +13,7 @@ from crypto.utils import sha512
 from Crypto.PublicKey.RSA import RsaKey
 from Crypto.Cipher import AES
 import hashlib
+import base64
 
 try:
     from secrets import token_hex
@@ -95,17 +96,18 @@ class Wallet(models.Model):
         self.pub, self.pv = new_keys(1024)
         self.pub = self.pub.export_key().decode()
         self.pv = self.pv.export_key().decode()
+        print('for check pv: ', self.pv)
         salt = token_hex(8)
         key = hashlib.sha256((self.pub[:50] + 'salt' + salt).encode('utf-8')).digest()
         for i in range(10):
             key = hashlib.sha256(key + 'pepper'.encode('utf-8')).digest()
-        padding_length = 16 - (len(self.pv) % 16)
+        padding_length = 32 - (len(self.pv) % 32)
         padding = chr(padding_length) * padding_length
         padded = self.pv + padding
         cipher = AES.new(key, AES.MODE_ECB).encrypt(padded.encode("utf8"))
-        self.pv = str(cipher) + salt
+        cipher = base64.b64encode(cipher)
+        self.pv = cipher.decode('utf8') + salt
         self.wallet_id = self.pub[header_len:header_len + 20]
-        print(len(self.pv))
         return self
 
     def get_keys(self):
@@ -115,15 +117,15 @@ class Wallet(models.Model):
     def get_pv(self):
         salt = self.pv[-16:]
         ciphertext = self.pv[:-16]
-        key = hashlib.sha256((self.pub[:50] + 'salt' + salt).encode('utf-8')).digest()
+        ciphertext = ciphertext.encode('utf8')
+        ciphertext = base64.b64decode(ciphertext)
+        key = hashlib.sha256((self.pub[:50] + 'salt' + salt).encode('utf8')).digest()
         for i in range(10):
             key = hashlib.sha256(key + 'pepper'.encode('utf-8')).digest()
-        print("safe", len(key), len(ciphertext))
-        padded = AES.new(key, AES.MODE_ECB).decrypt(ciphertext.encode("utf8"))
-        print(len(padded))
-        padding_length = ord(padded[-1])
-        print(" not safe")
-        return padded[:-padding_length]
+        cipher = AES.new(key, AES.MODE_ECB)
+        padded = cipher.decrypt(ciphertext)
+        padding_length = padded[-1]
+        return padded[:-padding_length].decode('utf8')
 
 
     def set_bank(self, bank):
