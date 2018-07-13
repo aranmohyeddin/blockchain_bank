@@ -93,7 +93,6 @@ class Wallet(models.Model):
         self.pub, self.pv = new_keys(1024)
         self.pub = self.pub.export_key().decode()
         self.pv = self.pv.export_key().decode()
-        print('for check pv: ', self.pv)
         salt = token_hex(8)
         key = hashlib.sha256((self.pub[:50] + 'salt' + salt).encode('utf-8')).digest()
         for i in range(10):
@@ -108,6 +107,12 @@ class Wallet(models.Model):
         return self
 
     def get_keys(self):
+        pub = ''.join(self.pub.split('\n')[1:-1])
+        pv = ''.join(self.get_pv().split('\n')[1:-1])
+        return pub, pv
+
+
+    def get_keys_str(self):
         return self.pub, self.get_pv()
 
     def get_pv(self):
