@@ -190,7 +190,7 @@ class Shell_interface(cmd.Cmd):
     def do_get_json(self, arg):
         '''
         get "json_address"
-        read genesis transaction from json file
+        read genesis transaction from json file(default: jsons/block-chain.txt)
 
         :param arg: string json_address
         :return:
