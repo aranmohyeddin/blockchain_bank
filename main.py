@@ -95,8 +95,9 @@ class Shell_interface(cmd.Cmd):
             transaction.transaction_id = transaction_dict['id']
             transaction.signature = signature
             block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
-                    minimum_transaction=self.minimum_transaction,
-                    should_check=False)
+                                  minimum_transaction=self.minimum_transaction,
+                                  fee=self.blockchain.fee,
+                                  should_check = False)
             if 'output' in transaction_dict:
                 for transaction_output_dict in transaction_dict['output']:
                     value = transaction_output_dict['value']
@@ -188,7 +189,9 @@ class Shell_interface(cmd.Cmd):
         '''
         json_address = arg.strip('"')
 
-        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty, self.minimum_transaction)
+        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty, self.minimum_transaction,
+                                     reward=float(BankSettings.objects.all()[0].reward),
+                                     fee=float(BankSettings.objects.all()[0].fee))
 
         with open(json_address, 'r') as json_file:
             json_data = json.load(json_file)
@@ -448,6 +451,7 @@ class Shell_interface(cmd.Cmd):
                 MIICdAIBADANBgkqhkiG9w0BAQEFAASCAl4wggJaAgEAAoGBAKC2mjrIV6NYytX7vd0ebjl7IlFZhs5cba13SCcGTkMc6BGnqFPkmJvvTH2wME+W05mHzhyNxqNAd/e9RjfHGMip0ZR63kCE9N/pgZJOg3uk3PbIjEDo5oblxsXtqTwR4HmjYM/o4BQgtTX5WOiBPrBLHd39zWzSOtnMasw6Vb3fAgMBAAECf12J6jpMYLWx+FyTKO6Jx52tDUxLzypMoYlU46nTAboOGQQtkMtDQY+AuARvh67LGl1BrbTwz6w02Z5Xi4brWoCCRtYoQwTXQc1VlKlagghIZp3zbl+Oj7pR0WQlUaXsrOA+pnqNJ3WysMxSiEHPg0lPHoYAfxWXSrN6DXXQMYkCQQDmnCRBmh8l59ePZiWY61N4XIE34JVcCwJCq/+1zqr6VPWMlFOo6ZYWFYLrmTBfqJwKPZvqoaRaubqbp1Trwv5DAkEAsmhjc4Nl63Zzk92UVs55SPcuhI+fi0Bl6lP4GyTMztQFFeUDoobLnGfd/AADI7Me3j8K4weN5ok17HZCRpPeNQJBAI8KrSaP/eAaRcgp+Qo4decDohdR0/Nq1LUcURmpnr52MnVHj/kHItSB9VpEBBBh2qAzhOHt769i4xAno/I1WlcCQFp3NHbOmk/bsJ+6LA4YhMfLD3uImI40CXnZOmYJMxFt0WZYyo8Paw/UW2v9VZo0qeJodUzJ99p+mSlejhzbvkECQGvLNSueACwhuxURJra3yb5mKA0K2DT9YLbC4Igv4g578/spLXZ+vCkxeRNyV5pzQ5psHzmEZ7XuoESTL1phWrY= ' +
                 key1
                 )
+
         self.do_login('c1 c1pass')
         self.do_get_balance(None)
         self.do_logout(None)
@@ -457,8 +461,6 @@ class Shell_interface(cmd.Cmd):
 #        self.do_logout(None)
 #        self.do_login('c2 c2pass')
 #        self.get_balance(None)
-
-
 
 
 if __name__ == '__main__':
