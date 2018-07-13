@@ -57,7 +57,7 @@ class Shell_interface(cmd.Cmd):
         block.nonce = dict['nonce']
         block.timestamp = dict['time_stamp']
         for transaction_dict in dict['transactions']:
-            sender = None
+            sender = ''
             if 'sender_public_key' in transaction_dict:
                 sender = transaction_dict['sender_public_key']
             reciever = transaction_dict['receiver_public_key']
@@ -164,7 +164,7 @@ class Shell_interface(cmd.Cmd):
         '''
         json_address = arg.strip('"')
 
-        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty)
+        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty, self.minimum_transaction)
 
         with open(json_address, 'r') as json_file:
             json_data = json.load(json_file)
@@ -262,7 +262,25 @@ class Shell_interface(cmd.Cmd):
     def do_login_based_transfer(self, arg):
         '    Transfer some money to a wallet:\n\
                 login_based_transfer x$ to "wallet_ID"'
-        print("you don't have enough balance")
+        if not self.current_user:
+            print('you must login first')
+            return
+        if self.current_user.login.user_type == 3:
+            print('Manager has no wallet, and no wallet means no balance')
+            return
+        args = arg.split()
+        value = float(args[0])
+        recipient_wallet_id = args[1]
+        try:
+            recipient = Wallet.objects.get(wallet_id=recipient_wallet_id)
+        except Wallet.DoesNotExist:
+            print('No wallet with id: {}'.format(recipient_wallet_id))
+            return
+        transaction = self.current_user.wallet.send_funds(recipient_public_key_str=recipient.get_keys()[0],
+                                                          value=value,
+                                                          blockchain=self.blockchain)
+        if transaction:
+            self.blockchain.append_transaction(transaction)
 
 
     def do_key_based_transfer(self, arg):
@@ -303,23 +321,26 @@ class Shell_interface(cmd.Cmd):
     def do_show_transactions_history(self, arg):
         '    Show transaction history(both incoming and outgoing):\n\
                 show_transactions_history'
-        history = []
+        if not self.current_user:
+            print('you must login first')
+            return
+        if self.current_user.login.user_type == 3:
+            print('Manager has no wallet, and no wallet means no transaction')
+            return
+        history = self.blockchain.get_history_of(self.current_user.wallet.get_keys()[0])
         for trans in history:
-            print("\
-            Sender public Key: {}\
-            Receiver public key: {}\
-            Amount transfered: {}\
-            Transaction fee: {}\
-            Transaction time: {}\
-            ".format(\
-            trans.sender_pub, \
-            trans.receiver_pub, \
-            trans.amount, \
-            trans.fee, \
-            trans.time_taken \
-            ))
+            if trans.sender == '':
+                fee = 0
+            else:
+                fee = BankSettings.objects.all()[0].fee
+            print(("Sender public Key: {}\nReceiver public key: {}\nAmount transfered: {}\n" +
+                   "Transaction fee: {}\nTransaction time: {}").format(trans.sender,
+                                                                       trans.recipient,
+                                                                       trans.value,
+                                                                       fee,
+                                                                       trans.timestamp))
 
-    def do_show_blockchain(self, arg):# access management
+    def do_show_blockchain(self, arg):  # access management
         '    Show BlockChain(manager only):\n\
                 show_blockchain'
         blocks = self.blockchain.blocks

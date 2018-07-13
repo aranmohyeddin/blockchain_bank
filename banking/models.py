@@ -142,7 +142,7 @@ class Wallet(models.Model):
                                                     sender_private_key_str=self.get_keys()[1],
                                                     recipient_public_key_str=recipient_public_key_str,
                                                     value=value)
-        blockchain.append_transaction(transaction)
+        return transaction
 
 
 class Customer(models.Model):

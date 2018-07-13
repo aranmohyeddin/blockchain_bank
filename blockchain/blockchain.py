@@ -7,11 +7,13 @@ import base64
 
 class BlockChain:
 
-    def __init__(self, difficulty):
+    def __init__(self, difficulty, minimum_transaction):
         self.blocks = []
         self.difficulty = difficulty
+        self.minimum_transaction = minimum_transaction
         self.all_utxos = {}
-        self.all_transactions = {}
+        self.mined_transactions = {}
+        self.not_mined_transactions = {}
 
     def append_block(self, block: Block):  #, mine_block=True):
         # if mine_block:
@@ -24,8 +26,9 @@ class BlockChain:
             return
 
         for transaction in block.transactions:
-            if transaction.transaction_id in self.all_transactions:
-                self.all_transactions[transaction.transaction_id].mined = True
+            if transaction.transaction_id in self.not_mined_transactions:
+                self.mined_transactions[transaction.transaction_id] = transaction
+                del self.not_mined_transactions[transaction.transaction_id]
             else:
                 print('It seems something is wrong, we didnt have this transacation')
 
@@ -37,7 +40,7 @@ class BlockChain:
         self.blocks.append(block)
 
     def append_transaction(self, transaction):
-        self.all_transactions[transaction.transaction_id] = transaction
+        self.not_mined_transactions[transaction.transaction_id] = transaction
 
     def append_utxo(self, transaction_output):
         self.all_utxos[transaction_output.id] = transaction_output
@@ -175,3 +178,11 @@ class BlockChain:
         transaction.generate_signature(import_key(sender_private_formated.encode('utf8')))
 
         return transaction
+
+    def get_history_of(self, public_key_str: str):
+        res = []
+        for tid, transaction in self.mined_transactions.items():
+            if transaction.sender == public_key_str or transaction.recipient == public_key_str:
+                if transaction.mined and transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                    res.append(transaction)
+        return res

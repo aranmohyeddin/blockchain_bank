@@ -2,6 +2,7 @@ from crypto.utils import sha256
 from crypto.rsa import sign, verify, import_key
 from typing import List, Dict
 from blockchain import TransactionOutput, TransactionInput
+from datetime import datetime
 
 
 class Transaction:
@@ -9,6 +10,7 @@ class Transaction:
     sequence = 0  # number of transactions created
 
     def __init__(self, from_pub_key_str: str, to_pub_key_str: str, value: float, inputs: list):
+        self.timestamp = datetime.now().timestamp()
         self.sender = from_pub_key_str
         self.recipient = to_pub_key_str
         self.value = value
@@ -38,6 +40,8 @@ class Transaction:
         self.signature = sign(message.encode(), sender_private_key)
 
     def verify_signature(self):
+        if self.sender == '':
+            return True
         if not self.signature:
             return False
 
@@ -66,7 +70,6 @@ class Transaction:
 
     # Returns true if new transaction could be created.
     def process_transaction(self, all_utxos: Dict[str, TransactionOutput], minimum_transaction: float):
-
         if not self.verify_signature():
             print("Transaction signature failed to verify")
             return False
@@ -100,5 +103,29 @@ class Transaction:
         # for inp in self.inputs:
         #     if inp.utxo:
         #         del all_utxos[inp.utxo.id]
+
+        return True
+
+    def is_valid(self, all_utxos: Dict[str, TransactionOutput], minimum_transaction: float):
+        if not self.verify_signature():
+            print("Transaction signature failed to verify")
+            return False
+
+        if self.sender == '':
+            return True
+
+        # gather transaction inputs (make sure they are unspent)
+        for inp in self.inputs:
+            inp.utxo = all_utxos.get(inp.transaction_output_id)
+
+        inputs_value = self.get_inputs_value()
+
+        if self.value < minimum_transaction:
+            print("Transaction inputs too small: " + str(inputs_value))
+            return False
+
+        if inputs_value < self.value:
+            print("Transaction inputs are not sufficient to do transaction")
+            return False
 
         return True
