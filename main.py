@@ -69,10 +69,10 @@ class Shell_interface(cmd.Cmd):
                     transaction_input = TransactionInput(transaction_output_id=transaction_output_id)
                     transaction_inputs.append(transaction_input)
             transaction = Transaction(sender, reciever, value, transaction_inputs)
+            transaction.transaction_id = transaction_dict['id']
             block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
                                   minimum_transaction=self.minimum_transaction,
                                   should_check=False)
-            is_coinbase = False
             if 'output' in transaction_dict:
                 for transaction_output_dict in transaction_dict['output']:
                     value = transaction_output_dict['value']
@@ -83,6 +83,7 @@ class Shell_interface(cmd.Cmd):
                     transaction_output = TransactionOutput(recipient_public_key_str=recipient_public_key,
                                                            value=value,
                                                            parent_transaction_id=parent_transaction_id)
+                    transaction.outputs.append(transaction_output)
                     self.blockchain.append_utxo(transaction_output)
             self.blockchain.append_block(block)
 
@@ -94,30 +95,29 @@ class Shell_interface(cmd.Cmd):
             'time_stamp': block.timestamp,
             'transactions': []
         }
-        transactions = Transaction.objects.filter(block=block)
+        transactions = block.transactions
         for transaction in transactions:
             transaction_dict = {
                 'value': float(transaction.value),
-                'id': transaction.id,
+                'id': transaction.transaction_id,
                 'sender_public_key': transaction.sender,
                 'receiver_public_key': transaction.recipient,
                 'signature': transaction.signature,
                 'input': [],
                 'output': []
             }
-            tis = TransactionInput.objects.filter(parent_transaction__id=transaction.id)
+            tis = transaction.inputs
             for ti in tis:
                 ti_dict = {
                     'transaction_output_id': ti.transaction_output_id,
                 }
                 transaction_dict['input'].append(ti_dict)
-            tos = TransactionOutput.objects.filter(parent_transaction__id=transaction.id)
+            tos = transaction.outputs
             for to in tos:
                 to_dict = {
                     'id': to.id,
                     'value': float(to.value),
                     'recipient_public_key': to.recipient,
-                    'spent': to.spent
                 }
                 transaction_dict['output'].append(to_dict)
             block_dict['transactions'].append(transaction_dict)
@@ -309,7 +309,7 @@ class Shell_interface(cmd.Cmd):
     def do_show_blockchain(self, arg):# access management
         '    Show BlockChain(manager only):\n\
                 show_blockchain'
-        blocks = Block.objects.filter(blockchain=self.blockchain)
+        blocks = self.blockchain.blocks
         blocks_list = []
         for block in blocks:
             blocks_list.append(self._block_to_dict(block))
