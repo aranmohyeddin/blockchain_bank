@@ -174,7 +174,6 @@ class Shell_interface(cmd.Cmd):
             else:  # it was a dict
                 self._read_block_from_dict(json_data)
 
-
     def do_show_keys(self, arg):
         '    Show your Public Key and private Key:\n\
                 show_keys'
@@ -183,7 +182,7 @@ class Shell_interface(cmd.Cmd):
         elif self.current_user.__class__.__name__ == 'Manager':
             print('Sorry dear Governor of the Central Bank, you can not have a wallet due to the regulations you have created yourself!')
         else:
-            print("{}\n{}".format(*self.current_user.get_keys()))
+            print("{}\n{}".format(*self.current_user.get_keys_str()))
 
 
     def do_register_bank(self, arg):
@@ -204,8 +203,7 @@ class Shell_interface(cmd.Cmd):
             bank.create_wallet().save()
             bank.wallet.set_bank(bank)
             bank.wallet.save()
-
-            print("{}\n{}".format(*bank.get_keys()))
+            print("{}\n{}".format(*bank.get_keys_str()))
 
 
     def do_register_customer(self, arg):
@@ -220,8 +218,7 @@ class Shell_interface(cmd.Cmd):
             return
         c = Customer().init(*args)
         c.save()
-
-        print("Public key: {}\nPrivate key: {}".format(*c.get_keys()))
+        print("{}\n{}".format(*c.get_keys_str()))
 
 
     def do_login(self, arg):

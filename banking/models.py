@@ -82,6 +82,14 @@ class Bank(models.Model):
         return self.wallet.get_keys()
 
 
+    def get_keys_str(self):
+        return self.wallet.get_keys_str()
+
+
+    def get_balance(self):
+        return self.wallet.get_balanc()
+
+
 class Wallet(models.Model):
     wallet_id = models.CharField(max_length=20)
     bank = models.ForeignKey(Bank, on_delete = models.CASCADE, related_name='from_bank', null=True)
@@ -159,7 +167,16 @@ class Customer(models.Model):
     def get_keys(self):
         return self.wallet.get_keys()
 
-    def get_bank(self):
+
+    def get_keys_str(self):
+        return self.wallet.get_keys_str()
+
+
+    def get_balance(self):
+        return self.wallet.get_balanc()
+
+
+    def get_bank():
         return self.wallet.bank
 
 
