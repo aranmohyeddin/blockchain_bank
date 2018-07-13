@@ -63,14 +63,14 @@ class Shell_interface(cmd.Cmd):
             else:
                 fee = BankSettings.objects.all()[0].fee
             print(("Sender public Key: {}\nReceiver public key: {}\nAmount transfered: {}\n" +
-                   "Transaction fee: {}\nTransaction time: {}").format(trans.sender,
-                                                                       trans.recipient,
-                                                                       trans.value,
-                                                                       fee,
-                                                                       trans.timestamp))
+                "Transaction fee: {}\nTransaction time: {}").format(trans.sender,
+                    trans.recipient,
+                    trans.value,
+                    fee,
+                    trans.timestamp))
 
     def _read_block_from_dict(self, dict):
-        # print(dict)
+                    # print(dict)
         previous_hash = dict['prev_block']
         block = Block(previous_hash=previous_hash)
         block.hash = dict['hash']
@@ -95,8 +95,8 @@ class Shell_interface(cmd.Cmd):
             transaction.transaction_id = transaction_dict['id']
             transaction.signature = signature
             block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
-                                  minimum_transaction=self.minimum_transaction,
-                                  should_check=False)
+                    minimum_transaction=self.minimum_transaction,
+                    should_check=False)
             if 'output' in transaction_dict:
                 for transaction_output_dict in transaction_dict['output']:
                     value = transaction_output_dict['value']
@@ -105,8 +105,8 @@ class Shell_interface(cmd.Cmd):
                         parent_transaction_id = transaction_output_dict['parent_transaction_id']
                     recipient_public_key = transaction_output_dict['recipient_public_key']
                     transaction_output = TransactionOutput(recipient_public_key_str=recipient_public_key,
-                                                           value=value,
-                                                           parent_transaction_id=parent_transaction_id)
+                            value=value,
+                            parent_transaction_id=parent_transaction_id)
                     transaction_output.id = transaction_output_dict['id']
                     transaction.outputs.append(transaction_output)
             self.blockchain.append_transaction(transaction)
@@ -114,36 +114,36 @@ class Shell_interface(cmd.Cmd):
 
     def _block_to_dict(self, block):
         block_dict = {
-            'hash': block.hash,
-            'previous_hash': block.previous_hash,
-            'nonce': block.nonce,
-            'time_stamp': block.timestamp,
-            'transactions': []
-        }
+                'hash': block.hash,
+                'previous_hash': block.previous_hash,
+                'nonce': block.nonce,
+                'time_stamp': block.timestamp,
+                'transactions': []
+                }
         transactions = block.transactions
         for transaction in transactions:
             transaction_dict = {
-                'value': float(transaction.value),
-                'id': transaction.transaction_id,
-                'sender_public_key': transaction.sender,
-                'receiver_public_key': transaction.recipient,
-                'signature': transaction.signature,
-                'input': [],
-                'output': []
-            }
+                    'value': float(transaction.value),
+                    'id': transaction.transaction_id,
+                    'sender_public_key': transaction.sender,
+                    'receiver_public_key': transaction.recipient,
+                    'signature': transaction.signature,
+                    'input': [],
+                    'output': []
+                    }
             tis = transaction.inputs
             for ti in tis:
                 ti_dict = {
-                    'transaction_output_id': ti.transaction_output_id,
-                }
+                        'transaction_output_id': ti.transaction_output_id,
+                        }
                 transaction_dict['input'].append(ti_dict)
             tos = transaction.outputs
             for to in tos:
                 to_dict = {
-                    'id': to.id,
-                    'value': float(to.value),
-                    'recipient_public_key': to.recipient,
-                }
+                        'id': to.id,
+                        'value': float(to.value),
+                        'recipient_public_key': to.recipient,
+                        }
                 transaction_dict['output'].append(to_dict)
             block_dict['transactions'].append(transaction_dict)
         return block_dict
@@ -169,13 +169,13 @@ class Shell_interface(cmd.Cmd):
         generate_token = self._get_variable_with_type('Generate Token: ', str)
         loan_condition = self._get_variable_with_type('Remainig bank balance more than this after Loan: ', float)
         bank_settings = BankSettings(
-            transaction_count_on_block=transaction_count_on_block,
-            fee=fee,
-            reward=reward,
-            difficulty=difficulty,
-            generate_token=generate_token,
-            loan_condition=loan_condition
-        )
+                transaction_count_on_block=transaction_count_on_block,
+                fee=fee,
+                reward=reward,
+                difficulty=difficulty,
+                generate_token=generate_token,
+                loan_condition=loan_condition
+                )
         bank_settings.save()
 
     def do_get_json(self, arg):
@@ -304,8 +304,8 @@ class Shell_interface(cmd.Cmd):
             print('No wallet with id: {}'.format(recipient_wallet_id))
             return
         transaction = self.current_user.wallet.send_funds(recipient_public_key_str=recipient.get_keys()[0],
-                                                          value=value,
-                                                          blockchain=self.blockchain)
+                value=value,
+                blockchain=self.blockchain)
         if transaction:
             self.blockchain.append_transaction(transaction)
 
@@ -320,9 +320,9 @@ class Shell_interface(cmd.Cmd):
         pb2 = args[3]
 
         transaction = self.blockchain.send_funds_from_to(sender_public_key_str=pb1,
-                                                         sender_private_key_str=pk,
-                                                         recipient_public_key_str=pb2,
-                                                         value=value)
+                sender_private_key_str=pk,
+                recipient_public_key_str=pb2,
+                value=value)
         if transaction:
             self.blockchain.append_transaction(transaction)
         print(transaction)
@@ -415,15 +415,44 @@ class Shell_interface(cmd.Cmd):
         os.system('clear')
 
 
+    def do_test(self, arg):
+        '   flush most of the tables and run a testcase:\n\
+                test'
+        Customer.objects.all().delete()
+        Bank.objects.all().delete()
+        Login.objects.all().delete()
+        Wallet.objects.all().delete()
+        self.do_register_bank('b1 b1pass bank1 tok123')
+        self.do_register_customer('c1 c1pass bank1')
+        self.do_register_customer('c2 c2pass bank1')
+        self.do_register_bank('b2 b2pass bank2 tok123')
+        self.do_register_bank('b3 b3pass bank3 tok123')
+        self.do_register_customer('c3 c3pass bank2')
+        self.do_register_customer('c4 c4pass bank1')
+        self.do_register_customer('c5 c5pass bank3')
+        self.do_register_customer('c6 c6pass bank2')
+        self.do_get_json('jsons/block-chain.txt')
+        key = Customer.objects.get(login__username='c1').get_keys()[0]
+        self.do_key_based_transfer(
+                '100 \
+                MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgtpo6yFejWMrV+73dHm45eyJRWYbOXG2td0gnBk5DHOgRp6hT5Jib70x9sDBPltOZh84cjcajQHf3vUY3xxjIqdGUet5AhPTf6YGSToN7pNz2yIxA6OaG5cbF7ak8EeB5o2DP6OAUILU1+VjogT6wSx3d/c1s0jrZzGrMOlW93wIDAQAB \
+                MIICdAIBADANBgkqhkiG9w0BAQEFAASCAl4wggJaAgEAAoGBAKC2mjrIV6NYytX7vd0ebjl7IlFZhs5cba13SCcGTkMc6BGnqFPkmJvvTH2wME+W05mHzhyNxqNAd/e9RjfHGMip0ZR63kCE9N/pgZJOg3uk3PbIjEDo5oblxsXtqTwR4HmjYM/o4BQgtTX5WOiBPrBLHd39zWzSOtnMasw6Vb3fAgMBAAECf12J6jpMYLWx+FyTKO6Jx52tDUxLzypMoYlU46nTAboOGQQtkMtDQY+AuARvh67LGl1BrbTwz6w02Z5Xi4brWoCCRtYoQwTXQc1VlKlagghIZp3zbl+Oj7pR0WQlUaXsrOA+pnqNJ3WysMxSiEHPg0lPHoYAfxWXSrN6DXXQMYkCQQDmnCRBmh8l59ePZiWY61N4XIE34JVcCwJCq/+1zqr6VPWMlFOo6ZYWFYLrmTBfqJwKPZvqoaRaubqbp1Trwv5DAkEAsmhjc4Nl63Zzk92UVs55SPcuhI+fi0Bl6lP4GyTMztQFFeUDoobLnGfd/AADI7Me3j8K4weN5ok17HZCRpPeNQJBAI8KrSaP/eAaRcgp+Qo4decDohdR0/Nq1LUcURmpnr52MnVHj/kHItSB9VpEBBBh2qAzhOHt769i4xAno/I1WlcCQFp3NHbOmk/bsJ+6LA4YhMfLD3uImI40CXnZOmYJMxFt0WZYyo8Paw/UW2v9VZo0qeJodUzJ99p+mSlejhzbvkECQGvLNSueACwhuxURJra3yb5mKA0K2DT9YLbC4Igv4g578/spLXZ+vCkxeRNyV5pzQ5psHzmEZ7XuoESTL1phWrY= ' +
+                key
+                )
+        self.do_login('c1 c1pass')
+        self.do_get_balance(None)
+        self.do_logout(None)
+
+
 if __name__ == '__main__':
     try:
         pass
         # connection = psycopg2.connect("\
-        #         dbname='blockchain_bank' \
-        #         user='dns' \
-        #         host='localhost' \
-        #         password='123qwe123' \
-        #         ")
+                #         dbname='blockchain_bank' \
+                #         user='dns' \
+                #         host='localhost' \
+                #         password='123qwe123' \
+                #         ")
         # cursor = connection.cursor()
         # cursor.execute("""CREATE TABLE banks (name char(40));""")
         # cursor.execute("""SELECT * from banks""")
