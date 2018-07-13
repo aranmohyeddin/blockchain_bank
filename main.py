@@ -393,7 +393,15 @@ class Shell_interface(cmd.Cmd):
     def do_show_customers(self, arg):# access management
         '    Show Customers(manager can view all, each bank can view the ones within their own network):\n\
                 show_customers'
-
+        if self.current_user.login.user_type == 3:
+            customers = Customer.objects.all()
+            print(json.dumps(customers, sort_keys=True, indent=4))
+        elif self.current_user.login.user_type == 2:
+            customers = Customer.objects.get(wallet__bank=self)
+            print(json.dumps(customers, sort_keys=True, indent=4))
+        else:
+            print("So I think u are not able to see customers; nah?")
+        
     def do_logout(self, arg):
         '    Logout:\n\
                 logout'
