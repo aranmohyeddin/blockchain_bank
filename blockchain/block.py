@@ -42,7 +42,10 @@ class Block:
 
         # process transaction and check if valid, unless block is genesis block then ignore.
         if self.previous_hash != "0":
-            if not transaction.process_transaction(all_utxos, minimum_transaction, is_coinbase, fee):
+            if not transaction.process_transaction(all_utxos=all_utxos,
+                                                   minimum_transaction=minimum_transaction,
+                                                   fee=fee,
+                                                   is_coinbase=is_coinbase):
                 print("Transaction failed to process")
                 return False
 
