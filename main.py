@@ -353,12 +353,35 @@ class Shell_interface(cmd.Cmd):
         if self.current_user.login.user_type == 3:
             print('Manager has no wallet, and no wallet means no loan')
             return
-        balance = self.current_user.wallet.get_balance()
-        bank_balance = self.current_user.get_bank().get_balance()
+        # if self.current_user.login.user_type == 2:
+        #     print("I think a bank don't need loan, so I'm sorry.")
+        #     return 
+        args = arg.split()
+        loan_value = args[0]
+        bank = Bank.objects.get(name=args[1])
+        bank_balance = bank.wallet.get_balance()
         margin = BankSettings.objects.all()[0].loan_condition
-        if balance < bank_balance + margin:
-            # check if current_user has no failed transactions and send transaction
-            pass
+        if loan_value + loan_value * margin < bank_balance:
+            # check if current_user has no failed transactions and send transaction+
+            invalids = []
+
+            invalids.extend(self.blockchain.get_all_invalide_transactions_from(self.current_user.wallet.get_keys()[0]))
+
+            if invalids.__len__() == 0:
+                transaction = self.blockchain.send_funds_from_to(sender_public_key_str=bank.wallet.get_keys_str()[0],
+                                                                 sender_private_key_str=bank.wallet.get_keys_str()[1],
+                                                                 recipient_public_key_str=self.current_user.wallet
+                                                                 .get_keys_str[0],
+                                                                 value=loan_value)
+                if transaction:
+                    self.blockchain.append_transaction(transaction)
+
+            else:
+                print('Oops, some invalid txs I can see :( ')
+                return 
+        else:
+            print('We have not conditions now, lets try a smaller loan value or try later.')
+            return
 
 
     def do_show_transactions_history(self, arg):
