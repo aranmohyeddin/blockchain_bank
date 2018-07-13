@@ -182,7 +182,7 @@ class Shell_interface(cmd.Cmd):
     def do_get_json(self, arg):
         '''
         get "json_address"
-        read genesis transaction from json file
+        read genesis transaction from json file(default: jsons/block-chain.txt)
 
         :param arg: string json_address
         :return:
@@ -231,7 +231,7 @@ class Shell_interface(cmd.Cmd):
             bank.wallet.set_bank(bank)
             bank.wallet.save()
             print("{}\n{}".format(*bank.get_keys_str()))
-            thread = Miner(self, bank.name)
+            thread = Miner(self, bank)
             thread.start()
             self.threads += [thread]
 
