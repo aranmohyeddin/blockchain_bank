@@ -5,15 +5,16 @@ from crypto.rsa import new_keys
 from crypto.utils import sha512
 from utils.models import SingletonModel
 
-from blockchain import TransactionOutput, Transaction, TransactionInput
-from blockchain.models import TransactionOutput
-
 from crypto.rsa import new_keys
 from crypto.utils import sha512
 from Crypto.PublicKey.RSA import RsaKey
 from Crypto.Cipher import AES
 import hashlib
 import base64
+
+from blockchain.transaction import Transaction
+from blockchain.transaction_input import TransactionInput
+from blockchain import BlockChain
 
 try:
     from secrets import token_hex
@@ -81,10 +82,6 @@ class Bank(models.Model):
         return self.wallet.get_keys()
 
 
-    def get_balance(self):
-        return self.wallet.get_balanc()
-
-
 class Wallet(models.Model):
     wallet_id = models.CharField(max_length=20)
     bank = models.ForeignKey(Bank, on_delete = models.CASCADE, related_name='from_bank', null=True)
@@ -113,7 +110,6 @@ class Wallet(models.Model):
     def get_keys(self):
         return self.pub, self.get_pv()
 
-
     def get_pv(self):
         salt = self.pv[-16:]
         ciphertext = self.pv[:-16]
@@ -127,20 +123,19 @@ class Wallet(models.Model):
         padding_length = padded[-1]
         return padded[:-padding_length].decode('utf8')
 
-
     def set_bank(self, bank):
         self.bank = bank
 
-
-    def get_balance(self):
-        utxos = TransactionOutput.objects.filter(recipient=self.pub, spent=False)
-
-        amount = 0
-
-        for utxo in utxos:
-            amount += utxo.value
-
+    def get_balance(self, blockchain: BlockChain):
+        amount = blockchain.get_balance_for_public_key(self.get_keys_str()[0])
         return amount
+
+    def send_funds(self, recipient_public_key_str: str, value: float, blockchain: BlockChain):
+        transaction = blockchain.send_funds_from_to(sender_public_key_str=self.get_keys_str()[0],
+                                                    sender_private_key_str=self.get_keys_str()[1],
+                                                    recipient_public_key_str=recipient_public_key_str,
+                                                    value=value)
+        blockchain.append_transaction(transaction)
 
 
 class Customer(models.Model):
@@ -160,12 +155,7 @@ class Customer(models.Model):
     def get_keys(self):
         return self.wallet.get_keys()
 
-
-    def get_balance(self):
-        return self.wallet.get_balanc()
-
-
-    def get_bank():
+    def get_bank(self):
         return self.wallet.bank
 
 

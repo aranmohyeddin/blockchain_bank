@@ -1,5 +1,5 @@
 from blockchain import Block, Transaction
-
+from blockchain import TransactionInput
 
 class BlockChain:
 
@@ -134,3 +134,38 @@ class BlockChain:
             block.print()
 
             index += 1
+
+    def get_balance_for_public_key(self, public_key):
+        amount = 0
+
+        for utxo in self.all_utxos:
+            if utxo.is_mine(public_key):
+                amount += utxo.value
+
+        return amount
+
+    def send_funds_from_to(self, sender_public_key_str: str, sender_private_key_str: str,
+                           recipient_public_key_str: str, value: float):
+        if self.get_balance_for_public_key(sender_public_key_str) < value:
+            print("Not enough balance, transaction discarded")
+            return
+
+        if value <= 0:
+            print("Value should be positive, transaction discarded")
+            return
+
+        inputs = []
+        total = 0
+        for transaction_id, utxo in self.all_utxos.items():
+            if utxo.is_mine(sender_public_key_str):
+                total += utxo.value
+                inp = TransactionInput(transaction_id)
+                inputs.append(inp)
+
+                if total >= value:
+                    break
+
+        transaction = Transaction(sender_public_key_str, recipient_public_key_str, value, inputs)
+        transaction.generate_signature(sender_private_key_str)
+
+        return transaction

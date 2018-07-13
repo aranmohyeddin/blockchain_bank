@@ -174,6 +174,7 @@ class Shell_interface(cmd.Cmd):
             else:  # it was a dict
                 self._read_block_from_dict(json_data)
 
+
     def do_show_keys(self, arg):
         '    Show your Public Key and private Key:\n\
                 show_keys'
@@ -203,6 +204,7 @@ class Shell_interface(cmd.Cmd):
             bank.create_wallet().save()
             bank.wallet.set_bank(bank)
             bank.wallet.save()
+
             print("{}\n{}".format(*bank.get_keys()))
 
 
@@ -218,6 +220,7 @@ class Shell_interface(cmd.Cmd):
             return
         c = Customer().init(*args)
         c.save()
+
         print("Public key: {}\nPrivate key: {}".format(*c.get_keys()))
 
 
@@ -254,7 +257,8 @@ class Shell_interface(cmd.Cmd):
             print('Manager has no wallet, and no wallet means no balance')
             return
         # the next two line should change to get logon person's wallet
-        balance = self.current_user.get_balance()
+
+        balance = self.current_user.wallet.get_balance(self.blockchain)
         print("You currently have {}$ in your wallet".format(balance))
 
 
@@ -273,38 +277,13 @@ class Shell_interface(cmd.Cmd):
         pk = args[2]
         pb2 = args[3]
 
-        utxos = TransactionOutput.objects.filter(recipient=pb1, spent=False)
+        transaction = self.blockchain.send_funds_from_to(sender_public_key_str=pb1,
+                                                         sender_private_key_str=pk,
+                                                         recipient_public_key_str=pb2,
+                                                         value=value)
+        self.blockchain.append_transaction(transaction)
 
-        balance = 0
 
-        for utxo in utxos:
-            balance += utxo.value
-
-        if balance < value:
-            print("Not enough balance, transaction discarded")
-            return
-
-        if value <= 0:
-            print("Value should be positive, transaction discarded")
-            return
-
-        inputs = []
-        total = 0
-        for transaction_id, utxo in utxos.items():
-            total += utxo.value
-            inp = TransactionInput(transaction_id)
-            inputs.append(inp)
-
-            if total >= value:
-                break
-
-        transaction = Transaction(pb1, pb2, value, inputs)
-        transaction.generate_signature(pk)
-
-        for inp in inputs:
-            del utxos[inp.transaction_output_id]
-
-        print(transaction)
 
 
     def do_request_loan(self, arg):
