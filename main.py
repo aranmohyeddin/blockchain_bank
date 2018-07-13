@@ -83,9 +83,10 @@ class Shell_interface(cmd.Cmd):
                     transaction_output = TransactionOutput(recipient_public_key_str=recipient_public_key,
                                                            value=value,
                                                            parent_transaction_id=parent_transaction_id)
+                    transaction_output.id = transaction_output_dict['id']
                     transaction.outputs.append(transaction_output)
-                    self.blockchain.append_utxo(transaction_output)
-            self.blockchain.append_block(block)
+            self.blockchain.append_transaction(transaction)
+        self.blockchain.append_block(block)
 
     def _block_to_dict(self, block):
         block_dict = {

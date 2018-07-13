@@ -14,6 +14,7 @@ class Transaction:
         self.value = value
         self.transaction_id = None
         self.signature = None
+        self.mined = False
 
         # transaction inputs for creating this transaction
         self.inputs = inputs  # type: List[TransactionInput]

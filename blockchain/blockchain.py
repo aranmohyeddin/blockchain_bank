@@ -7,15 +7,33 @@ class BlockChain:
         self.blocks = []
         self.difficulty = difficulty
         self.all_utxos = {}
-        self.all_transactions = []
+        self.all_transactions = {}
 
     def append_block(self, block: Block):  #, mine_block=True):
         # if mine_block:
         #     block.mine(self.difficulty)
         #     print("Block mined: " + block.hash)
 
-        # todo -> update utxos
+        # todo -> should lock here after threading
+        if block.previous_hash != "0" and block.previous_hash != self.blocks[-1].hash:
+            print('Invalid block. previous_hash does not match')
+            return
+
+        for transaction in block.transactions:
+            if transaction.transaction_id in self.all_transactions:
+                self.all_transactions[transaction.transaction_id].mined = True
+            else:
+                print('It seems something is wrong, we didnt have this transacation')
+
+            for transaction_input in transaction.inputs:
+                del self.all_utxos[transaction_input.transaction_output_id]
+
+            for transaction_output in transaction.outputs:
+                self.all_utxos[transaction_output.id] = transaction_output
         self.blocks.append(block)
+
+    def append_transaction(self, transaction):
+        self.all_transactions[transaction.transaction_id] = transaction
 
     def append_utxo(self, transaction_output):
         self.all_utxos[transaction_output.id] = transaction_output
