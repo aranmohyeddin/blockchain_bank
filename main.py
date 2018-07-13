@@ -4,6 +4,7 @@
 from typing import Dict
 
 import psycopg2
+import threading
 
 import json
 import cmd, sys #cmd is used for making a repl.
@@ -25,6 +26,7 @@ from blockchain.blockchain import BlockChain
 from blockchain.transaction import Transaction
 from blockchain.transaction_input import TransactionInput
 from blockchain.transaction_output import TransactionOutput
+from utils.miner import Miner
 
 
 class Shell_interface(cmd.Cmd):
@@ -36,7 +38,11 @@ class Shell_interface(cmd.Cmd):
     flag = 0
 
     blockchain = None
+    block_size = BankSettings.objects.all()[0].transaction_count_on_block
+    lock = threading.Lock()
     minimum_transaction = 5
+    exit_threads = False
+    threads = []
 
     @staticmethod
     def _get_variable_with_type(prompt, type):
@@ -204,6 +210,9 @@ class Shell_interface(cmd.Cmd):
             bank.wallet.set_bank(bank)
             bank.wallet.save()
             print("{}\n{}".format(*bank.get_keys_str()))
+            thread = Miner(self, bank.name)
+            thread.start()
+            self.threads += [thread]
 
 
     def do_register_customer(self, arg):
@@ -370,7 +379,10 @@ class Shell_interface(cmd.Cmd):
     def do_quit(self, arg):
         '    Quit the Shell:\n\
                 quit'
-        print('Thank you for using the blockchain bank system')
+        print('Thank you for using the blockchain bank system. Please wait untill all banks stop mining.')
+        self.exit_threads = True
+        for thread in self.threads:
+            thread.join()
         return True
 
     def do_clear(self, arg):
