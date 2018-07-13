@@ -36,7 +36,7 @@ class Miner(threading.Thread):
                                   self.shell.blockchain.minimum_transaction,
                                   fee=fee, should_check=True)
         block.mine(BankSettings.objects.all()[0].difficulty)
-        print('block mined: {}'.format(block.calculate_hash()))
+        print('block mined: {}.'.format(block.calculate_hash()))
         self.shell.blockchain.append_block(block)
 
     def run(self):

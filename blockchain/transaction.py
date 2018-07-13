@@ -96,6 +96,7 @@ class Transaction:
 
         self.transaction_id = self.calculate_hash()
 
+        self.outputs = []
         self.outputs.append(TransactionOutput(self.recipient, self.value, self.transaction_id))
 
         leftover_value = inputs_value - self.value - fee
