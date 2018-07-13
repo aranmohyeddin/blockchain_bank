@@ -6,13 +6,19 @@ class BlockChain:
     def __init__(self, difficulty):
         self.blocks = []
         self.difficulty = difficulty
+        self.all_utxos = {}
+        self.all_transactions = []
 
-    def append_block(self, block: Block, mine_block=True):
-        if mine_block:
-            block.mine(self.difficulty)
-            print("Block mined: " + block.hash)
+    def append_block(self, block: Block):  #, mine_block=True):
+        # if mine_block:
+        #     block.mine(self.difficulty)
+        #     print("Block mined: " + block.hash)
 
+        # todo -> update utxos
         self.blocks.append(block)
+
+    def append_utxo(self, transaction_output):
+        self.all_utxos[transaction_output.id] = transaction_output
 
     def check_valid(self, genesis_transaction: Transaction):
         hash_prefix = "0" * self.difficulty

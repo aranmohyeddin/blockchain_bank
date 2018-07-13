@@ -33,9 +33,12 @@ class Block:
         transaction_ids = [transaction.transaction_id for transaction in self.transactions]
         return merkle_root(transaction_ids)
 
-    def add_transaction(self, transaction, all_utxos, minimum_transaction) -> bool:
+    def add_transaction(self, transaction, all_utxos, minimum_transaction, should_check) -> bool:
         if transaction is None:
             return False
+        if not should_check:
+            self.transactions.append(transaction)
+            return True
 
         # process transaction and check if valid, unless block is genesis block then ignore.
         if self.previous_hash != "0":

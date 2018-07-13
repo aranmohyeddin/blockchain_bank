@@ -73,7 +73,7 @@ class Transaction:
 
         inputs_value = self.get_inputs_value()
 
-        if inputs_value < minimum_transaction:
+        if self.value < minimum_transaction:
             print("Transaction inputs too small: " + str(inputs_value))
             return False
 
@@ -85,16 +85,16 @@ class Transaction:
         self.outputs.append(TransactionOutput(self.recipient, self.value, self.transaction_id))
 
         leftover_value = inputs_value - self.value
-        if leftover_value > 0:
+        if self.sender and leftover_value > 0:
             self.outputs.append(TransactionOutput(self.sender, leftover_value, self.transaction_id))
 
         # add outputs to unspent utxos list
-        for output in self.outputs:
-            all_utxos[output.id] = output
+        # for output in self.outputs:
+        #     all_utxos[output.id] = output
 
         # remove inputs from utxos list as spent
-        for inp in self.inputs:
-            if inp.utxo:
-                del all_utxos[inp.utxo.id]
+        # for inp in self.inputs:
+        #     if inp.utxo:
+        #         del all_utxos[inp.utxo.id]
 
         return True

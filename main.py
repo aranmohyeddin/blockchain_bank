@@ -19,7 +19,12 @@ application = get_wsgi_application()
 
 # Your application specific imports
 from banking.models import Customer, BankSettings, Bank, Manager, Wallet, Login
-from blockchain.models import BlockChain, Block, Transaction, TransactionInput, TransactionOutput, Sequence
+# from blockchain.models import BlockChain, Block, Transaction, TransactionInput, TransactionOutput, Sequence
+from blockchain.block import Block
+from blockchain.blockchain import BlockChain
+from blockchain.transaction import Transaction
+from blockchain.transaction_input import TransactionInput
+from blockchain.transaction_output import TransactionOutput
 
 
 class Shell_interface(cmd.Cmd):
@@ -31,8 +36,10 @@ class Shell_interface(cmd.Cmd):
     flag = 0
 
     blockchain = None
+    minimum_transaction = 5
 
-    def _get_variable_with_type(self, prompt, type):
+    @staticmethod
+    def _get_variable_with_type(prompt, type):
         while True:
             try:
                 value = input(prompt)
@@ -43,47 +50,41 @@ class Shell_interface(cmd.Cmd):
         return value
 
     def _read_block_from_dict(self, dict):
-        block = None
-        transaction = None
-        try:
-            block = Block(
-                hash=dict['hash'],
-                previous_hash=dict['prev_block'],
-                nonce=dict['nonce'],
-                timestamp=dict['time_stamp']
-            )
-            block.blockchain = self.blockchain
-            block.save()
-            for transaction_dict in dict['transactions']:
-                transaction = Transaction(
-                    value=transaction_dict['value'],
-                    id=transaction_dict['id'],
-                    sender=transaction_dict['sender_public_key'],
-                    recipient=transaction_dict['receiver_public_key'],
-                    signature=transaction_dict['signature']
-                )
-                transaction.block = block
-                transaction.save()
-                for input_dict in transaction_dict['input']:
-                    # ti = TransactionInput()
-                    pass
-                for output_dict in transaction_dict['output']:
-                    to = TransactionOutput(
-                        id=output_dict['id'],
-                        value=output_dict['value'],
-                        recipient=output_dict['recipient_public_key'],
-                        spent=output_dict['spent']
-                    )
-                    if transaction.id != output_dict['parent_transaction_id']:
-                        print('Something seems wrong parent_id does not match')
-                    to.parent_transaction = transaction
-                    to.save()
-        except KeyError as err:
-            print('KeyError: {}'.format(err))
-            if block:
-                block.delete()
-            if transaction:
-                transaction.delete()
+        # print(dict)
+        previous_hash = dict['prev_block']
+        block = Block(previous_hash=previous_hash)
+        block.hash = dict['hash']
+        block.nonce = dict['nonce']
+        block.timestamp = dict['time_stamp']
+        for transaction_dict in dict['transactions']:
+            sender = None
+            if 'sender_public_key' in transaction_dict:
+                sender = transaction_dict['sender_public_key']
+            reciever = transaction_dict['receiver_public_key']
+            value = transaction_dict['value']
+            transaction_inputs = []
+            if 'input' in transaction_dict:
+                for transaction_input_dict in transaction_dict['input']:
+                    transaction_output_id = transaction_input_dict['transactionOutputId']
+                    transaction_input = TransactionInput(transaction_output_id=transaction_output_id)
+                    transaction_inputs.append(transaction_input)
+            transaction = Transaction(sender, reciever, value, transaction_inputs)
+            block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
+                                  minimum_transaction=self.minimum_transaction,
+                                  should_check=False)
+            is_coinbase = False
+            if 'output' in transaction_dict:
+                for transaction_output_dict in transaction_dict['output']:
+                    value = transaction_output_dict['value']
+                    parent_transaction_id = ''
+                    if 'parent_transaction_id' in transaction_output_dict:
+                        parent_transaction_id = transaction_output_dict['parent_transaction_id']
+                    recipient_public_key = transaction_output_dict['recipient_public_key']
+                    transaction_output = TransactionOutput(recipient_public_key_str=recipient_public_key,
+                                                           value=value,
+                                                           parent_transaction_id=parent_transaction_id)
+                    self.blockchain.append_utxo(transaction_output)
+            self.blockchain.append_block(block)
 
     def _block_to_dict(self, block):
         block_dict = {
@@ -162,19 +163,15 @@ class Shell_interface(cmd.Cmd):
         '''
         json_address = arg.strip('"')
 
-        difficulty = BankSettings.objects.all()[0].difficulty
-        self.blockchain = BlockChain(difficulty=difficulty)
-        self.blockchain.save()
+        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty)
 
         with open(json_address, 'r') as json_file:
             json_data = json.load(json_file)
-            if type(json_data) == 'list':
+            if type(json_data).__name__ == 'list':
                 for item in json_data:
                     self._read_block_from_dict(item)
             else:  # it was a dict
                 self._read_block_from_dict(json_data)
-        seq = Sequence(value=Transaction.objects.count())
-        seq.save()
 
     def do_show_keys(self, arg):
         '    Show your Public Key and private Key:\n\
