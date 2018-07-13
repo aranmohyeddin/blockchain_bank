@@ -268,7 +268,43 @@ class Shell_interface(cmd.Cmd):
         '    Send transaction:\n\
                 key_based_transfer x$ "PublicKey" "PrivateKey" to "publickey"'
         args = arg.split()
-        w = Wallet.objects.get(pub = args[0])
+        value = args[0]
+        pb1 = args[1]
+        pk = args[2]
+        pb2 = args[3]
+
+        utxos = TransactionOutput.objects.filter(recipient=pb1, spent=False)
+
+        balance = 0
+
+        for utxo in utxos:
+            balance += utxo.value
+
+        if balance < value:
+            print("Not enough balance, transaction discarded")
+            return
+
+        if value <= 0:
+            print("Value should be positive, transaction discarded")
+            return
+
+        inputs = []
+        total = 0
+        for transaction_id, utxo in utxos.items():
+            total += utxo.value
+            inp = TransactionInput(transaction_id)
+            inputs.append(inp)
+
+            if total >= value:
+                break
+
+        transaction = Transaction(pb1, pb2, value, inputs)
+        transaction.generate_signature(pk)
+
+        for inp in inputs:
+            del utxos[inp.transaction_output_id]
+
+        print(transaction)
 
 
     def do_request_loan(self, arg):
