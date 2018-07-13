@@ -269,7 +269,7 @@ class Shell_interface(cmd.Cmd):
         '    Send transaction:\n\
                 key_based_transfer x$ "PublicKey" "PrivateKey" to "publickey"'
         args = arg.split()
-        value = args[0]
+        value = float(args[0])
         pb1 = args[1]
         pk = args[2]
         pb2 = args[3]
@@ -278,7 +278,9 @@ class Shell_interface(cmd.Cmd):
                                                          sender_private_key_str=pk,
                                                          recipient_public_key_str=pb2,
                                                          value=value)
-        self.blockchain.append_transaction(transaction)
+        if transaction:
+            self.blockchain.append_transaction(transaction)
+        print(transaction)
 
 
     def do_request_loan(self, arg):

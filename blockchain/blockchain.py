@@ -1,5 +1,9 @@
 from blockchain import Block, Transaction
 from blockchain import TransactionInput
+from crypto.rsa import import_key
+from Crypto.IO import PEM
+import base64
+
 
 class BlockChain:
 
@@ -148,11 +152,11 @@ class BlockChain:
                            recipient_public_key_str: str, value: float):
         if self.get_balance_for_public_key(sender_public_key_str) < value:
             print("Not enough balance, transaction discarded")
-            return
+            return None
 
         if value <= 0:
             print("Value should be positive, transaction discarded")
-            return
+            return None
 
         inputs = []
         total = 0
@@ -166,6 +170,8 @@ class BlockChain:
                     break
 
         transaction = Transaction(sender_public_key_str, recipient_public_key_str, value, inputs)
-        transaction.generate_signature(sender_private_key_str)
+        encoded = base64.b64decode(sender_private_key_str.encode('utf8'))
+        sender_private_formated = PEM.encode(encoded, 'RSA PRIVATE KEY')
+        transaction.generate_signature(import_key(sender_private_formated.encode('utf8')))
 
         return transaction

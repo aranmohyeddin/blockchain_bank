@@ -22,6 +22,9 @@ class Transaction:
         # transaction outputs created from this transaction
         self.outputs = []  # type: List[TransactionOutput]
 
+    def __str__(self):
+        return 'sender: {}\nrecipient: {}\nvalue: {}'.format(self.sender, self.recipient, self.value)
+
     def calculate_hash(self):
         # increase the sequence to avoid 2 identical transactions having the same hash
         Transaction.sequence += 1
