@@ -106,7 +106,7 @@ class Wallet(models.Model):
         cipher = AES.new(key, AES.MODE_ECB).encrypt(padded.encode("utf8"))
         cipher = base64.b64encode(cipher)
         self.pv = cipher.decode('utf8') + salt
-        self.wallet_id = self.pub[header_len:header_len + 20]
+        self.wallet_id = self.pub[header_len + 39:header_len + 59]
         return self
 
     def get_keys(self):

@@ -302,6 +302,7 @@ class Shell_interface(cmd.Cmd):
         args = arg.split()
         value = float(args[0])
         recipient_wallet_id = args[1]
+        print('###################' + recipient_wallet_id)
         try:
             recipient = Wallet.objects.get(wallet_id=recipient_wallet_id)
         except Wallet.DoesNotExist:
@@ -455,7 +456,14 @@ class Shell_interface(cmd.Cmd):
         self.do_login('c1 c1pass')
         self.do_get_balance(None)
         self.do_logout(None)
-        return self.do_quit(None)
+        id2 = Customer.objects.get(login__username='c2').get_keys()[0][39:59]
+        self.do_login('c1 c1pass')
+        self.do_login_based_transfer('50 ' + id2)
+        self.do_get_balance(None)
+        self.do_logout(None)
+        self.do_login('c2 c2pass')
+        self.do_get_balance(None)
+        #return self.do_quit(None)
 
 
 if __name__ == '__main__':
