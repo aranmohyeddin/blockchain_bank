@@ -62,7 +62,7 @@ class Login(models.Model):
 class Bank(models.Model):
     login = models.OneToOneField(Login, on_delete=models.CASCADE)
     name = models.CharField(max_length=100, unique=True)
-    wallet = models.ForeignKey('Wallet', on_delete=models.CASCADE, related_name='bank_wallet', null=True)
+    wallet = models.OneToOneField('Wallet', on_delete=models.CASCADE, related_name='bank_wallet', null=True)
 
     def init(self, uname, password, name):
         self.name = name
@@ -147,7 +147,7 @@ class Wallet(models.Model):
 
 class Customer(models.Model):
     login = models.OneToOneField(Login, on_delete=models.CASCADE)
-    wallet = models.ForeignKey(Wallet, on_delete = models.CASCADE)
+    wallet = models.OneToOneField(Wallet, on_delete = models.CASCADE)
 
     def init(self, uname, password, bank_name):
         login = Login(user_type=1).init(uname, password)

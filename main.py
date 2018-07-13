@@ -11,6 +11,7 @@ import base64
 import json
 import cmd, sys #cmd is used for making a repl.
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 
 # Django specific settings
 import os
@@ -38,6 +39,7 @@ class Shell_interface(cmd.Cmd):
     file = None
     current_user = None
     flag = 0
+    settings = BankSettings.objects.all()[0]
 
     blockchain = None
     block_size = BankSettings.objects.all()[0].transaction_count_on_block
@@ -160,6 +162,9 @@ class Shell_interface(cmd.Cmd):
     def do_create_manager(self, arg):
         '    Create the acount for the manager of all banking systems:\n\
                 create Manager "ManagerUserName" "Password"'
+        if Manager.objects.all().count() > 0:
+            print('We already have a manager in the system.\nPlease consider using appropiate commands for changing the regulations')
+            return
         args = arg.split()
         manager_username = args[0]
         manager_password = args[1]
@@ -440,24 +445,29 @@ class Shell_interface(cmd.Cmd):
 
 
     def do_set_block_size(self, arg):
-        BankSettings.objects.all()[0].transaction_count_on_block = int(arg)
+        self.settings.transaction_count_on_block = int(arg)
+        self.settings.save()
     def do_set_transaction_fee(self, arg):
-        BankSettings.objects.all()[0].fee = int(arg)
+        self.settings.fee = int(arg)
+        self.settings.save()
     def do_set_mining_reward(self, arg):
-        BankSettings.objects.all()[0].reward = int(arg)
+        self.settings.reward = int(arg)
+        self.settings.save()
     def do_set_difficulty(self, arg):
-        BankSettings.objects.all()[0].difficulty = int(arg)
+        self.settings.difficulty = int(arg)
+        self.settings.save()
     def do_set_generate_token(self, arg):
-        BankSettings.objects.all()[0].generate_token = arg
+        self.settings.generate_token = arg
+        self.settings.save()
+    def do_set_load_condition(self, arg):
+        self.settings.loan_condition = int(arg)
+        self.settings.save()
 
 
     def do_test(self, arg):
         '   flush most of the tables and run a testcase:\n\
                 test'
-        Customer.objects.all().delete()
-        Bank.objects.all().delete()
-        Login.objects.all().delete()
-        Wallet.objects.all().delete()
+        Login.objects.filter(~Q(user_type = 3)).delete()
         self.do_get_json('jsons/block-chain.txt')
         self.do_register_bank('b1 b1pass bank1 tok123')
         self.do_register_customer('c1 c1pass bank1')
@@ -469,15 +479,15 @@ class Shell_interface(cmd.Cmd):
         self.do_register_customer('c5 c5pass bank3')
         self.do_register_customer('c6 c6pass bank2')
         key1 = Customer.objects.get(login__username='c1').get_keys()[0]
-        self.do_key_based_transfer(
-                '75 \
-                MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgtpo6yFejWMrV+73dHm45eyJRWYbOXG2td0gnBk5DHOgRp6hT5Jib70x9sDBPltOZh84cjcajQHf3vUY3xxjIqdGUet5AhPTf6YGSToN7pNz2yIxA6OaG5cbF7ak8EeB5o2DP6OAUILU1+VjogT6wSx3d/c1s0jrZzGrMOlW93wIDAQAB \
-                MIICdAIBADANBgkqhkiG9w0BAQEFAASCAl4wggJaAgEAAoGBAKC2mjrIV6NYytX7vd0ebjl7IlFZhs5cba13SCcGTkMc6BGnqFPkmJvvTH2wME+W05mHzhyNxqNAd/e9RjfHGMip0ZR63kCE9N/pgZJOg3uk3PbIjEDo5oblxsXtqTwR4HmjYM/o4BQgtTX5WOiBPrBLHd39zWzSOtnMasw6Vb3fAgMBAAECf12J6jpMYLWx+FyTKO6Jx52tDUxLzypMoYlU46nTAboOGQQtkMtDQY+AuARvh67LGl1BrbTwz6w02Z5Xi4brWoCCRtYoQwTXQc1VlKlagghIZp3zbl+Oj7pR0WQlUaXsrOA+pnqNJ3WysMxSiEHPg0lPHoYAfxWXSrN6DXXQMYkCQQDmnCRBmh8l59ePZiWY61N4XIE34JVcCwJCq/+1zqr6VPWMlFOo6ZYWFYLrmTBfqJwKPZvqoaRaubqbp1Trwv5DAkEAsmhjc4Nl63Zzk92UVs55SPcuhI+fi0Bl6lP4GyTMztQFFeUDoobLnGfd/AADI7Me3j8K4weN5ok17HZCRpPeNQJBAI8KrSaP/eAaRcgp+Qo4decDohdR0/Nq1LUcURmpnr52MnVHj/kHItSB9VpEBBBh2qAzhOHt769i4xAno/I1WlcCQFp3NHbOmk/bsJ+6LA4YhMfLD3uImI40CXnZOmYJMxFt0WZYyo8Paw/UW2v9VZo0qeJodUzJ99p+mSlejhzbvkECQGvLNSueACwhuxURJra3yb5mKA0K2DT9YLbC4Igv4g578/spLXZ+vCkxeRNyV5pzQ5psHzmEZ7XuoESTL1phWrY= ' +
-                key1
-                )
+        #self.do_key_based_transfer(
+        #        '75 \
+        #        MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgtpo6yFejWMrV+73dHm45eyJRWYbOXG2td0gnBk5DHOgRp6hT5Jib70x9sDBPltOZh84cjcajQHf3vUY3xxjIqdGUet5AhPTf6YGSToN7pNz2yIxA6OaG5cbF7ak8EeB5o2DP6OAUILU1+VjogT6wSx3d/c1s0jrZzGrMOlW93wIDAQAB \
+        #        MIICdAIBADANBgkqhkiG9w0BAQEFAASCAl4wggJaAgEAAoGBAKC2mjrIV6NYytX7vd0ebjl7IlFZhs5cba13SCcGTkMc6BGnqFPkmJvvTH2wME+W05mHzhyNxqNAd/e9RjfHGMip0ZR63kCE9N/pgZJOg3uk3PbIjEDo5oblxsXtqTwR4HmjYM/o4BQgtTX5WOiBPrBLHd39zWzSOtnMasw6Vb3fAgMBAAECf12J6jpMYLWx+FyTKO6Jx52tDUxLzypMoYlU46nTAboOGQQtkMtDQY+AuARvh67LGl1BrbTwz6w02Z5Xi4brWoCCRtYoQwTXQc1VlKlagghIZp3zbl+Oj7pR0WQlUaXsrOA+pnqNJ3WysMxSiEHPg0lPHoYAfxWXSrN6DXXQMYkCQQDmnCRBmh8l59ePZiWY61N4XIE34JVcCwJCq/+1zqr6VPWMlFOo6ZYWFYLrmTBfqJwKPZvqoaRaubqbp1Trwv5DAkEAsmhjc4Nl63Zzk92UVs55SPcuhI+fi0Bl6lP4GyTMztQFFeUDoobLnGfd/AADI7Me3j8K4weN5ok17HZCRpPeNQJBAI8KrSaP/eAaRcgp+Qo4decDohdR0/Nq1LUcURmpnr52MnVHj/kHItSB9VpEBBBh2qAzhOHt769i4xAno/I1WlcCQFp3NHbOmk/bsJ+6LA4YhMfLD3uImI40CXnZOmYJMxFt0WZYyo8Paw/UW2v9VZo0qeJodUzJ99p+mSlejhzbvkECQGvLNSueACwhuxURJra3yb5mKA0K2DT9YLbC4Igv4g578/spLXZ+vCkxeRNyV5pzQ5psHzmEZ7XuoESTL1phWrY= ' +
+        #        key1
+        #        )
         id2 = Customer.objects.get(login__username='c2').get_keys()[0][39:59]
         self.do_login('c1 c1pass')
-        self.do_login_based_transfer('50 ' + id2)
+        #self.do_login_based_transfer('50 ' + id2)
         time.sleep(1)
         self.do_get_balance(None)
         self.do_logout(None)
