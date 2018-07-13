@@ -292,7 +292,7 @@ class Shell_interface(cmd.Cmd):
 
     def do_login_based_transfer(self, arg):
         '    Transfer some money to a wallet:\n\
-                login_based_transfer x$ to "wallet_ID"'
+                login_based_transfer x$ "wallet_ID"'
         if not self.current_user:
             print('you must login first')
             return
@@ -444,13 +444,12 @@ class Shell_interface(cmd.Cmd):
         self.do_register_customer('c4 c4pass bank1')
         self.do_register_customer('c5 c5pass bank3')
         self.do_register_customer('c6 c6pass bank2')
-        key = Customer.objects.get(login__username='c1').get_keys()[0]
-        print(Customer.objects.get(login__username='c1').get_keys())
+        key1 = Customer.objects.get(login__username='c1').get_keys()[0]
         self.do_key_based_transfer(
                 '100 \
                 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgtpo6yFejWMrV+73dHm45eyJRWYbOXG2td0gnBk5DHOgRp6hT5Jib70x9sDBPltOZh84cjcajQHf3vUY3xxjIqdGUet5AhPTf6YGSToN7pNz2yIxA6OaG5cbF7ak8EeB5o2DP6OAUILU1+VjogT6wSx3d/c1s0jrZzGrMOlW93wIDAQAB \
                 MIICdAIBADANBgkqhkiG9w0BAQEFAASCAl4wggJaAgEAAoGBAKC2mjrIV6NYytX7vd0ebjl7IlFZhs5cba13SCcGTkMc6BGnqFPkmJvvTH2wME+W05mHzhyNxqNAd/e9RjfHGMip0ZR63kCE9N/pgZJOg3uk3PbIjEDo5oblxsXtqTwR4HmjYM/o4BQgtTX5WOiBPrBLHd39zWzSOtnMasw6Vb3fAgMBAAECf12J6jpMYLWx+FyTKO6Jx52tDUxLzypMoYlU46nTAboOGQQtkMtDQY+AuARvh67LGl1BrbTwz6w02Z5Xi4brWoCCRtYoQwTXQc1VlKlagghIZp3zbl+Oj7pR0WQlUaXsrOA+pnqNJ3WysMxSiEHPg0lPHoYAfxWXSrN6DXXQMYkCQQDmnCRBmh8l59ePZiWY61N4XIE34JVcCwJCq/+1zqr6VPWMlFOo6ZYWFYLrmTBfqJwKPZvqoaRaubqbp1Trwv5DAkEAsmhjc4Nl63Zzk92UVs55SPcuhI+fi0Bl6lP4GyTMztQFFeUDoobLnGfd/AADI7Me3j8K4weN5ok17HZCRpPeNQJBAI8KrSaP/eAaRcgp+Qo4decDohdR0/Nq1LUcURmpnr52MnVHj/kHItSB9VpEBBBh2qAzhOHt769i4xAno/I1WlcCQFp3NHbOmk/bsJ+6LA4YhMfLD3uImI40CXnZOmYJMxFt0WZYyo8Paw/UW2v9VZo0qeJodUzJ99p+mSlejhzbvkECQGvLNSueACwhuxURJra3yb5mKA0K2DT9YLbC4Igv4g578/spLXZ+vCkxeRNyV5pzQ5psHzmEZ7XuoESTL1phWrY= ' +
-                key
+                key1
                 )
         time.sleep(1)
         self.do_login('c1 c1pass')
