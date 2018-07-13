@@ -81,6 +81,10 @@ class Bank(models.Model):
         return self.wallet.get_keys()
 
 
+    def get_keys_str(self):
+        return self.wallet.get_keys_str()
+    
+    
     def get_balance(self):
         return self.wallet.get_balanc()
 
@@ -164,6 +168,10 @@ class Customer(models.Model):
 
     def get_keys(self):
         return self.wallet.get_keys()
+
+
+    def get_keys_str(self):
+        return self.wallet.get_keys_str()
 
 
     def get_balance(self):
