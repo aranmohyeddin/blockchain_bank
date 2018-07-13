@@ -3,6 +3,8 @@ from crypto.rsa import sign, verify, import_key
 from typing import List, Dict
 from blockchain import TransactionOutput, TransactionInput
 from datetime import datetime
+import base64
+from Crypto.IO import PEM
 
 
 class Transaction:
@@ -46,7 +48,9 @@ class Transaction:
             return False
 
         message = self.sender + self.recipient + str(self.value)
-        sender_public_key = import_key(self.sender)
+        encoded = base64.b64decode(self.sender.encode('utf8'))
+        sender_public_formated = PEM.encode(encoded, 'RSA PUBLIC KEY')
+        sender_public_key = import_key(sender_public_formated)
         return verify(message.encode(), self.signature, sender_public_key)
 
     def get_outputs_value(self):

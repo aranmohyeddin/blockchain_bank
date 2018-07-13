@@ -49,6 +49,20 @@ class Shell_interface(cmd.Cmd):
                 print('Invalid Input')
         return value
 
+    @staticmethod
+    def _print_transactions(transactions):
+        for trans in transactions:
+            if trans.sender == '':
+                fee = 0
+            else:
+                fee = BankSettings.objects.all()[0].fee
+            print(("Sender public Key: {}\nReceiver public key: {}\nAmount transfered: {}\n" +
+                   "Transaction fee: {}\nTransaction time: {}").format(trans.sender,
+                                                                       trans.recipient,
+                                                                       trans.value,
+                                                                       fee,
+                                                                       trans.timestamp))
+
     def _read_block_from_dict(self, dict):
         # print(dict)
         previous_hash = dict['prev_block']
@@ -60,6 +74,9 @@ class Shell_interface(cmd.Cmd):
             sender = ''
             if 'sender_public_key' in transaction_dict:
                 sender = transaction_dict['sender_public_key']
+            signature = None
+            if 'signature' in transaction_dict:
+                signature = transaction_dict['signature']
             reciever = transaction_dict['receiver_public_key']
             value = transaction_dict['value']
             transaction_inputs = []
@@ -70,6 +87,7 @@ class Shell_interface(cmd.Cmd):
                     transaction_inputs.append(transaction_input)
             transaction = Transaction(sender, reciever, value, transaction_inputs)
             transaction.transaction_id = transaction_dict['id']
+            transaction.signature = signature
             block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
                                   minimum_transaction=self.minimum_transaction,
                                   should_check=False)
@@ -328,17 +346,7 @@ class Shell_interface(cmd.Cmd):
             print('Manager has no wallet, and no wallet means no transaction')
             return
         history = self.blockchain.get_history_of(self.current_user.wallet.get_keys()[0])
-        for trans in history:
-            if trans.sender == '':
-                fee = 0
-            else:
-                fee = BankSettings.objects.all()[0].fee
-            print(("Sender public Key: {}\nReceiver public key: {}\nAmount transfered: {}\n" +
-                   "Transaction fee: {}\nTransaction time: {}").format(trans.sender,
-                                                                       trans.recipient,
-                                                                       trans.value,
-                                                                       fee,
-                                                                       trans.timestamp))
+        self._print_transactions(history)
 
     def do_show_blockchain(self, arg):  # access management
         '    Show BlockChain(manager only):\n\
@@ -356,6 +364,22 @@ class Shell_interface(cmd.Cmd):
     def do_show_invalid_transactions(self, arg):# access management
         '    Show Invalid transactons(manager can view all, each bank can view the ones within their own network):\n\
                 show_invalid_transactions'
+        if not self.current_user:
+            print('you must login first')
+            return
+        if self.current_user.login.user_type == 1:
+            print('Remember! You are just a customer')
+            return
+        invalids = []
+        if self.current_user.login.user_type == 3:
+            invalids = self.blockchain.get_all_invalide_transactions()
+
+        if self.current_user.login.user_type == 2:
+            wallets = Wallet.objects.filter(bank=self.current_user)
+            for wallet in wallets:
+                invalids.extend(self.blockchain.get_all_invalide_transactions_from(wallet.get_keys()[0]))
+        self._print_transactions(invalids)
+
 
     def do_show_customers(self, arg):# access management
         '    Show Customers(manager can view all, each bank can view the ones within their own network):\n\

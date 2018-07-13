@@ -58,9 +58,9 @@ class BlockChain:
             block = self.blocks[block_ind]
 
             # compare registered hash and calculated hash
-            if block.calculate_hash() != block.hash:
-                print("Invalid hash")
-                return False
+            # if block.calculate_hash() != block.hash:
+            #     print("Invalid hash")
+            #     return False
 
             # check registered previous hash with its real previous hash
             if block.previous_hash != prev_hash:
@@ -81,9 +81,9 @@ class BlockChain:
                     print("Signature is invalid on transaction %d" % i)
                     return False
 
-                if transaction.get_inputs_value() != transaction.get_outputs_value():
-                    print("Input values are not equal with output values on transaction %d" % i)
-                    return False
+                # if transaction.get_inputs_value() != transaction.get_outputs_value():
+                #     print("Input values are not equal with output values on transaction %d" % i)
+                #     return False
 
                 for inp in transaction.inputs:
                     output = temp_utxos.get(inp.transaction_output_id)
@@ -105,11 +105,11 @@ class BlockChain:
                     print("Transaction output recipient is not who it should be on transaction %d" % i)
                     return False
 
-                if transaction.get_inputs_value() != transaction.outputs[0].value \
-                    and transaction.outputs[1].recipient != transaction.sender:
-
-                    print("Transaction ouput `change` is not sender on transaction %d" % i)
-                    return False
+                # if transaction.get_inputs_value() != transaction.outputs[0].value \
+                #     and transaction.outputs[1].recipient != transaction.sender:
+                #
+                #     print("Transaction ouput `change` is not sender on transaction %d" % i)
+                #     return False
 
                 i += 1
 
@@ -183,6 +183,28 @@ class BlockChain:
         res = []
         for tid, transaction in self.mined_transactions.items():
             if transaction.sender == public_key_str or transaction.recipient == public_key_str:
-                if transaction.mined and transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                if transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                    res.append(transaction)
+        return res
+
+    def get_all_invalide_transactions(self):
+        res = []
+        for tid, transaction in self.mined_transactions.items():
+            if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                res.append(transaction)
+        for tid, transaction in self.not_mined_transactions.items():
+            if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                res.append(transaction)
+        return res
+
+    def get_all_invalide_transactions_from(self, public_key_str: str):
+        res = []
+        for tid, transaction in self.mined_transactions.items():
+            if transaction.sender == public_key_str or transaction.recipient == public_key_str:
+                if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                    res.append(transaction)
+        for tid, transaction in self.not_mined_transactions.items():
+            if transaction.sender == public_key_str or transaction.recipient == public_key_str:
+                if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
                     res.append(transaction)
         return res
