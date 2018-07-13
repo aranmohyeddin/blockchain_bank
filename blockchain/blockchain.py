@@ -7,10 +7,12 @@ import base64
 
 class BlockChain:
 
-    def __init__(self, difficulty, minimum_transaction):
+    def __init__(self, difficulty, minimum_transaction, fee, reward):
         self.blocks = []
         self.difficulty = difficulty
         self.minimum_transaction = minimum_transaction
+        self.fee = fee
+        self.reward = reward
         self.all_utxos = {}
         self.mined_transactions = {}
         self.not_mined_transactions = {}
@@ -21,7 +23,7 @@ class BlockChain:
         #     print("Block mined: " + block.hash)
 
         # todo -> should lock here after threading
-        if block.previous_hash != "0" and block.previous_hash != self.blocks[-1].hash:
+        if block.previous_hash != "0" and block.previous_hash != self.last_block_hash():
             print('Invalid block. previous_hash does not match')
             return
 
@@ -38,6 +40,11 @@ class BlockChain:
             for transaction_output in transaction.outputs:
                 self.all_utxos[transaction_output.id] = transaction_output
         self.blocks.append(block)
+
+    def last_block_hash(self):
+        if len(self.blocks) == 0:
+            return '0'
+        return self.blocks[-1].hash
 
     def append_transaction(self, transaction):
         self.not_mined_transactions[transaction.transaction_id] = transaction
@@ -169,14 +176,14 @@ class BlockChain:
                 inp = TransactionInput(transaction_id)
                 inputs.append(inp)
 
-                if total >= value:
+                if total >= value + self.fee:
                     break
 
         transaction = Transaction(sender_public_key_str, recipient_public_key_str, value, inputs)
         encoded = base64.b64decode(sender_private_key_str.encode('utf8'))
         sender_private_formated = PEM.encode(encoded, 'RSA PRIVATE KEY')
         transaction.generate_signature(import_key(sender_private_formated.encode('utf8')))
-
+        transaction.process_transaction(self.all_utxos, self.minimum_transaction, self.fee)
         return transaction
 
     def get_history_of(self, public_key_str: str):
@@ -190,10 +197,10 @@ class BlockChain:
     def get_all_invalide_transactions(self):
         res = []
         for tid, transaction in self.mined_transactions.items():
-            if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+            if not transaction.is_valid(self.all_utxos, self.minimum_transaction, self.fee):
                 res.append(transaction)
         for tid, transaction in self.not_mined_transactions.items():
-            if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+            if not transaction.is_valid(self.all_utxos, self.minimum_transaction, self.fee):
                 res.append(transaction)
         return res
 
@@ -201,10 +208,17 @@ class BlockChain:
         res = []
         for tid, transaction in self.mined_transactions.items():
             if transaction.sender == public_key_str or transaction.recipient == public_key_str:
-                if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                if not transaction.is_valid(self.all_utxos, self.minimum_transaction, self.fee):
                     res.append(transaction)
         for tid, transaction in self.not_mined_transactions.items():
             if transaction.sender == public_key_str or transaction.recipient == public_key_str:
-                if not transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                if not transaction.is_valid(self.all_utxos, self.minimum_transaction, self.fee):
                     res.append(transaction)
+        return res
+
+    def get_blockchain_balance(self):
+        res = 0
+        for tid, transaction in self.mined_transactions.items():
+            if transaction.sender == '':
+                res += self.reward
         return res

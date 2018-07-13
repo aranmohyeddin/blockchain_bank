@@ -12,6 +12,7 @@ class Transaction:
     sequence = 0  # number of transactions created
 
     def __init__(self, from_pub_key_str: str, to_pub_key_str: str, value: float, inputs: list):
+        Transaction.sequence += 1
         self.timestamp = datetime.now().timestamp()
         self.sender = from_pub_key_str
         self.recipient = to_pub_key_str
@@ -19,6 +20,8 @@ class Transaction:
         self.transaction_id = None
         self.signature = None
         self.mined = False
+        self.sequence = Transaction.sequence
+
 
         # transaction inputs for creating this transaction
         self.inputs = inputs  # type: List[TransactionInput]
@@ -31,9 +34,8 @@ class Transaction:
 
     def calculate_hash(self):
         # increase the sequence to avoid 2 identical transactions having the same hash
-        Transaction.sequence += 1
 
-        message = self.sender + self.recipient + str(self.value) + str(Transaction.sequence)
+        message = self.sender + self.recipient + str(self.value) + str(self.sequence)
 
         return sha256(message)
 
@@ -73,7 +75,8 @@ class Transaction:
         return amount
 
     # Returns true if new transaction could be created.
-    def process_transaction(self, all_utxos: Dict[str, TransactionOutput], minimum_transaction: float):
+    def process_transaction(self, all_utxos: Dict[str, TransactionOutput], minimum_transaction: float,
+                            fee: float, is_coinbase=False):
         if not self.verify_signature():
             print("Transaction signature failed to verify")
             return False
@@ -85,17 +88,17 @@ class Transaction:
         inputs_value = self.get_inputs_value()
 
         if self.value < minimum_transaction:
-            print("Transaction inputs too small: " + str(inputs_value))
+            print("Transaction value too small: " + str(self.value))
             return False
-
-        if inputs_value < self.value:
+        if not is_coinbase and inputs_value < self.value + fee:
             print("Transaction inputs are not sufficient to do transaction")
+            return False
 
         self.transaction_id = self.calculate_hash()
 
         self.outputs.append(TransactionOutput(self.recipient, self.value, self.transaction_id))
 
-        leftover_value = inputs_value - self.value
+        leftover_value = inputs_value - self.value - fee
         if self.sender and leftover_value > 0:
             self.outputs.append(TransactionOutput(self.sender, leftover_value, self.transaction_id))
 
@@ -110,9 +113,8 @@ class Transaction:
 
         return True
 
-    def is_valid(self, all_utxos: Dict[str, TransactionOutput], minimum_transaction: float):
+    def is_valid(self, all_utxos: Dict[str, TransactionOutput], minimum_transaction: float, fee: float):
         if not self.verify_signature():
-            print("Transaction signature failed to verify")
             return False
 
         if self.sender == '':
@@ -125,11 +127,9 @@ class Transaction:
         inputs_value = self.get_inputs_value()
 
         if self.value < minimum_transaction:
-            print("Transaction inputs too small: " + str(inputs_value))
             return False
 
-        if inputs_value < self.value:
-            print("Transaction inputs are not sufficient to do transaction")
+        if inputs_value < self.value + fee:
             return False
 
         return True
