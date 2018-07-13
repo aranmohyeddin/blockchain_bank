@@ -27,7 +27,6 @@ from blockchain.transaction import Transaction
 from blockchain.transaction_input import TransactionInput
 from blockchain.transaction_output import TransactionOutput
 from utils.miner import Miner
-import base64
 
 
 class Shell_interface(cmd.Cmd):
@@ -44,9 +43,6 @@ class Shell_interface(cmd.Cmd):
     minimum_transaction = 5
     exit_threads = False
     threads = []
-
-    def emptyline(self):
-        pass
 
     @staticmethod
     def _get_variable_with_type(prompt, type):
@@ -100,7 +96,6 @@ class Shell_interface(cmd.Cmd):
             transaction.signature = signature
             block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
                                   minimum_transaction=self.minimum_transaction,
-                                  fee=self.blockchain.fee,
                                   should_check=False)
             if 'output' in transaction_dict:
                 for transaction_output_dict in transaction_dict['output']:
@@ -127,21 +122,12 @@ class Shell_interface(cmd.Cmd):
         }
         transactions = block.transactions
         for transaction in transactions:
-            print('tid:', transaction.transaction_id)
-            print('sign:', transaction.signature)
-            print('type:', type(transaction.signature).__name__)
-            sign = None
-            if transaction.signature and type(transaction.signature).__name__ == 'str':
-                sign = transaction.signature
-            elif transaction.signature and type(transaction.signature).__name__ == 'bytes':
-                sign = base64.b64encode(transaction.signature)
-                sign = sign.decode('utf8')
             transaction_dict = {
                 'value': float(transaction.value),
                 'id': transaction.transaction_id,
                 'sender_public_key': transaction.sender,
                 'receiver_public_key': transaction.recipient,
-                'signature': sign,
+                'signature': transaction.signature,
                 'input': [],
                 'output': []
             }
@@ -202,9 +188,7 @@ class Shell_interface(cmd.Cmd):
         '''
         json_address = arg.strip('"')
 
-        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty, self.minimum_transaction,
-                                     float(BankSettings.objects.all()[0].fee),
-                                     float(BankSettings.objects.all()[0].reward))
+        self.blockchain = BlockChain(BankSettings.objects.all()[0].difficulty, self.minimum_transaction)
 
         with open(json_address, 'r') as json_file:
             json_data = json.load(json_file)
@@ -244,7 +228,7 @@ class Shell_interface(cmd.Cmd):
             bank.wallet.set_bank(bank)
             bank.wallet.save()
             print("{}\n{}".format(*bank.get_keys_str()))
-            thread = Miner(self, bank)
+            thread = Miner(self, bank.name)
             thread.start()
             self.threads += [thread]
 
@@ -293,12 +277,12 @@ class Shell_interface(cmd.Cmd):
         if not self.current_user:
             print('you must login first')
             return
-        # the next two line should change to get logon person's wallet
         if self.current_user.login.user_type == 3:
-            args = arg.split()
-            balance = self.blockchain.get_balance_for_public_key(args[0])
-        else:
-            balance = self.current_user.wallet.get_balance(self.blockchain)
+            print('Manager has no wallet, and no wallet means no balance')
+            return
+        # the next two line should change to get logon person's wallet
+
+        balance = self.current_user.wallet.get_balance(self.blockchain)
         print("You currently have {}$ in your wallet".format(balance))
 
 
@@ -341,7 +325,6 @@ class Shell_interface(cmd.Cmd):
                                                          value=value)
         if transaction:
             self.blockchain.append_transaction(transaction)
-            print(transaction.transaction_id)
         print(transaction)
 
 
@@ -386,15 +369,6 @@ class Shell_interface(cmd.Cmd):
     def do_show_blockchain_balance(self, arg):# access management
         '    Show BlockChain balance(manager only):\n\
                 show_blockchain_balance'
-        if not self.current_user:
-            print('you must login first')
-            return
-        if self.current_user.login.user_type != 3:
-            print('Only manager can do this')
-            return
-        balance = self.blockchain.get_blockchain_balance()
-        print("Blockchain currently has {}$ in it.".format(balance))
-
 
     def do_show_invalid_transactions(self, arg):# access management
         '    Show Invalid transactons(manager can view all, each bank can view the ones within their own network):\n\
@@ -419,7 +393,15 @@ class Shell_interface(cmd.Cmd):
     def do_show_customers(self, arg):# access management
         '    Show Customers(manager can view all, each bank can view the ones within their own network):\n\
                 show_customers'
-
+        if self.current_user.login.user_type == 3:
+            customers = Customer.objects.all()
+            print(json.dumps(customers, sort_keys=True, indent=4))
+        elif self.current_user.login.user_type == 2:
+            customers = Customer.objects.get(wallet__bank=self)
+            print(json.dumps(customers, sort_keys=True, indent=4))
+        else:
+            print("So I think u are not able to see customers; nah?")
+        
     def do_logout(self, arg):
         '    Logout:\n\
                 logout'
