@@ -111,7 +111,6 @@ class Wallet(models.Model):
         pv = ''.join(self.get_pv().split('\n')[1:-1])
         return pub, pv
 
-
     def get_keys_str(self):
         return self.pub, self.get_pv()
 
@@ -136,8 +135,8 @@ class Wallet(models.Model):
         return amount
 
     def send_funds(self, recipient_public_key_str: str, value: float, blockchain: BlockChain):
-        transaction = blockchain.send_funds_from_to(sender_public_key_str=self.get_keys_str()[0],
-                                                    sender_private_key_str=self.get_keys_str()[1],
+        transaction = blockchain.send_funds_from_to(sender_public_key_str=self.get_keys()[0],
+                                                    sender_private_key_str=self.get_keys()[1],
                                                     recipient_public_key_str=recipient_public_key_str,
                                                     value=value)
         blockchain.append_transaction(transaction)

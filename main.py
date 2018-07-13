@@ -284,8 +284,6 @@ class Shell_interface(cmd.Cmd):
         self.blockchain.append_transaction(transaction)
 
 
-
-
     def do_request_loan(self, arg):
         '    Request for loan from bank:\n\
                 request_loan x$'

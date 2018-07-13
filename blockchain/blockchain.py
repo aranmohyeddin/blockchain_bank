@@ -138,7 +138,7 @@ class BlockChain:
     def get_balance_for_public_key(self, public_key):
         amount = 0
 
-        for utxo in self.all_utxos:
+        for transaction_output_id, utxo in self.all_utxos.items():
             if utxo.is_mine(public_key):
                 amount += utxo.value
 
