@@ -134,7 +134,7 @@ class Wallet(models.Model):
         self.bank = bank
 
     def get_balance(self, blockchain: BlockChain):
-        amount = blockchain.get_balance_for_public_key(self.get_keys_str()[0])
+        amount = blockchain.get_balance_for_public_key(self.get_keys()[0])
         return amount
 
     def send_funds(self, recipient_public_key_str: str, value: float, blockchain: BlockChain):
