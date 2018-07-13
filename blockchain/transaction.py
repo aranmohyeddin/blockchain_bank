@@ -99,7 +99,7 @@ class Transaction:
         self.outputs = []
         self.outputs.append(TransactionOutput(self.recipient, self.value, self.transaction_id))
 
-        leftover_value = inputs_value - self.value - fee
+        leftover_value = inputs_value - (self.value + fee)
         if self.sender and leftover_value > 0:
             self.outputs.append(TransactionOutput(self.sender, leftover_value, self.transaction_id))
 

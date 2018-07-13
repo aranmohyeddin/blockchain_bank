@@ -28,7 +28,9 @@ class Miner(threading.Thread):
 
         value = float(BankSettings.objects.all()[0].reward) + fee * (self.shell.block_size - 1)
         coinbase = Transaction('', self.bank.wallet.get_keys()[0], value=value, inputs=[])
-        block.add_transaction(coinbase, self.shell.blockchain.all_utxos, self.shell.blockchain.minimum_transaction,
+        block.add_transaction(transaction=coinbase,
+                              all_utxos=self.shell.blockchain.all_utxos,
+                              minimum_transaction=self.shell.blockchain.minimum_transaction,
                               fee=fee, should_check=True, is_coinbase=True)
         self.shell.blockchain.append_transaction(coinbase)
         for valid_transaction in valid_transactions:
