@@ -40,9 +40,8 @@ class Shell_interface(cmd.Cmd):
     current_user = None
     flag = 0
     settings = BankSettings.objects.all()[0]
-
-    blockchain = None
     block_size = BankSettings.objects.all()[0].transaction_count_on_block
+    blockchain = None
     lock = threading.Lock()
     minimum_transaction = 5
     exit_threads = False
@@ -80,6 +79,7 @@ class Shell_interface(cmd.Cmd):
         block.hash = dict['hash']
         block.nonce = dict['nonce']
         block.timestamp = dict['time_stamp']
+        is_coinbase = True
         for transaction_dict in dict['transactions']:
             sender = ''
             if 'sender_public_key' in transaction_dict:
@@ -101,7 +101,10 @@ class Shell_interface(cmd.Cmd):
             block.add_transaction(transaction, all_utxos=self.blockchain.all_utxos,
                                   minimum_transaction=self.minimum_transaction,
                                   fee=self.blockchain.fee,
-                                  should_check = False)
+                                  should_check = False,
+                                  is_coinbase=is_coinbase
+                                  )
+            is_coinbase = False
             if 'output' in transaction_dict:
                 for transaction_output_dict in transaction_dict['output']:
                     value = transaction_output_dict['value']
@@ -366,10 +369,10 @@ class Shell_interface(cmd.Cmd):
             invalids = []
             invalids.extend(self.blockchain.get_all_invalide_transactions_from(self.current_user.wallet.get_keys()[0]))
             if invalids.__len__() == 0:
-                transaction = self.blockchain.send_funds_from_to(sender_public_key_str=bank.wallet.get_keys_str()[0],
-                                                                 sender_private_key_str=bank.wallet.get_keys_str()[1],
+                transaction = self.blockchain.send_funds_from_to(sender_public_key_str=bank.wallet.get_keys()[0],
+                                                                 sender_private_key_str=bank.wallet.get_keys()[1],
                                                                  recipient_public_key_str=self.current_user.wallet
-                                                                 .get_keys[0],
+                                                                 .get_keys()[0],
                                                                  value=loan_value)
                 if transaction:
                     self.blockchain.append_transaction(transaction)
@@ -509,6 +512,10 @@ class Shell_interface(cmd.Cmd):
                 b.wallet.get_balance(self.blockchain),
                 b.wallet.wallet_id,
                 ))
+        for id, transaction in self.blockchain.mined_transactions.items():
+            print('    public_key {}: {}\n  '.format(transaction.recipient,
+                                                     self.blockchain.get_balance_for_public_key(transaction.recipient)))
+
 
 
     def do_test(self, arg):
@@ -526,6 +533,7 @@ class Shell_interface(cmd.Cmd):
         self.do_register_customer('c5 c5pass bank3')
         self.do_register_customer('c6 c6pass bank2')
         key1 = Customer.objects.get(login__username='c1').get_keys()[0]
+        time.sleep(2)
         self.do_key_based_transfer(
                 '75 \
                 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgtpo6yFejWMrV+73dHm45eyJRWYbOXG2td0gnBk5DHOgRp6hT5Jib70x9sDBPltOZh84cjcajQHf3vUY3xxjIqdGUet5AhPTf6YGSToN7pNz2yIxA6OaG5cbF7ak8EeB5o2DP6OAUILU1+VjogT6wSx3d/c1s0jrZzGrMOlW93wIDAQAB \
@@ -534,13 +542,14 @@ class Shell_interface(cmd.Cmd):
                 )
         id2 = Customer.objects.get(login__username='c2').get_keys()[0][39:59]
         self.do_login('c1 c1pass')
+        time.sleep(2)
         self.do_login_based_transfer('50 ' + id2)
-        time.sleep(1)
-        self.do_get_balance(None)
         self.do_logout(None)
-        self.do_login('c2 c2pass')
-        self.do_get_balance(None)
         #return self.do_quit(None)
+
+    def do_mtest(self, arg):
+        Login.objects.filter(~Q(user_type = 3)).delete()
+        self.do_get_json('jsons/block-chain.txt')
 
 
 if __name__ == '__main__':

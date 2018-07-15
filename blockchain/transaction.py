@@ -130,7 +130,7 @@ class Transaction:
         if self.value < minimum_transaction:
             return False
 
-        if inputs_value < self.value + fee:
-            return False
+        #if inputs_value < self.value + fee:
+        #    return False
 
         return True

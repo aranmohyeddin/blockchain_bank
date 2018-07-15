@@ -190,7 +190,7 @@ class BlockChain:
         res = []
         for tid, transaction in self.mined_transactions.items():
             if transaction.sender == public_key_str or transaction.recipient == public_key_str:
-                if transaction.is_valid(self.all_utxos, self.minimum_transaction):
+                if transaction.is_valid(self.all_utxos, self.minimum_transaction, self.fee):
                     res.append(transaction)
         return res
 
